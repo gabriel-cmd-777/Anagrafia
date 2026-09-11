@@ -26,6 +26,8 @@
   --green-soft:#cfe8df;
   --amber:#b77a0c;       /* echi */
   --amber-soft:#f4e2b8;
+  --violet:#6a3fb5;      /* compatibilità grammaticale */
+  --violet-soft:#e3d8f6;
   --tile-font: Charter,"Bitstream Charter","Sitka Text",Cambria,"Iowan Old Style",serif;
   --ui-font: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
 }
@@ -33,7 +35,7 @@
   :root{
     --zinc:#1e2226; --plate:#272c31; --channel:#1a1e22; --ink:#e7eaee; --muted:#9aa3ad; --rule:#3b434b;
     --tile:#cbb88f; --tile-face:#dccba6; --tile-edge:#8d7648;
-    --blue:#7d97ff; --blue-soft:#2b3563; --green:#5cc5a6; --green-soft:#1d3b33; --amber:#e3ad45; --amber-soft:#4a3a17;
+    --blue:#7d97ff; --blue-soft:#2b3563; --green:#5cc5a6; --green-soft:#1d3b33; --amber:#e3ad45; --amber-soft:#4a3a17; --violet:#b69cf2; --violet-soft:#35294f;
   }
 }
 *{ box-sizing:border-box; }
@@ -129,6 +131,8 @@ input[type=search]{ width:13em; min-width:0; }
 .sugg:empty{ display:none; }
 .sugg-label{ flex:none; }
 .sugg-none{ font-style:italic; }
+.sugg-sep{ flex:none; width:1px; height:1.4em; background:var(--rule); margin:0 6px; }
+.violet-n{ color:var(--violet); }
 
 /* ---------- righe del tavolo ---------- */
 .board{ padding:10px 10px 0; }
@@ -184,6 +188,7 @@ input[type=search]{ width:13em; min-width:0; }
 .chip .n{ font:600 .66rem/1 var(--ui-font); font-style:normal; color:#6f5a33; }
 .chip.sugg{ background:linear-gradient(var(--green-soft),var(--green-soft)); border-color:var(--green); color:var(--ink); }
 .chip.echo{ background:linear-gradient(var(--amber-soft),var(--amber-soft)); border-color:var(--amber); color:var(--ink); }
+.chip.gram{ background:linear-gradient(var(--violet-soft),var(--violet-soft)); border-color:var(--violet); color:var(--ink); }
 .chip.sel{ box-shadow:0 0 0 2px var(--blue-soft), 0 1px 1px rgba(0,0,0,.18); }
 .chip.dragging{ opacity:.28; }
 .chip .x{
@@ -263,7 +268,7 @@ kbd{ font:600 .78rem var(--ui-font); padding:.05em .4em; border:1px solid var(--
     <button class="btn" id="btnUndo" title="Annulla (Ctrl/Cmd+Z)">↶ Annulla</button>
     <button class="btn" id="btnRedo" title="Ripeti (Ctrl/Cmd+Shift+Z)">↷ Ripeti</button>
     <button class="btn" id="btnSaves" title="Salvataggi locali ed esportazione JSON">Salvataggi</button>
-    <button class="btn" id="btnReset" title="Riparti dal testo originale">Reset</button>
+    <button class="btn" id="btnReset" title="Cancella tutto: testo, banca e tavolo">Reset</button>
     <button class="btn" id="btnHelp" title="Istruzioni e scorciatoie">Guida</button>
   </nav>
 </header>
@@ -300,6 +305,12 @@ kbd{ font:600 .78rem var(--ui-font); padding:.05em .4em; border:1px solid var(--
       <h2>Tavolo</h2>
       <div class="tools">
         <button class="btn" id="btnAddLine" title="Nuova riga dopo quella attiva">+ Riga</button>
+        <select id="hintMode" title="Quali tessere colorare nella banca dopo la parola scelta">
+          <option value="both">Viola e verde</option>
+          <option value="gram">Solo viola: possono seguire</option>
+          <option value="orig">Solo verde: dal testo</option>
+          <option value="none">Nessun colore</option>
+        </select>
         <label class="toggle" title="Evidenzia le coppie di parole adiacenti che compaiono già così nel testo originale"><input type="checkbox" id="echoes"> Echi</label>
         <button class="btn" id="btnClear" title="Rimanda tutte le tessere nella banca">Svuota</button>
         <button class="btn" id="btnTxt" title="Scarica il testo ricostruito come .txt">Scarica</button>
@@ -327,6 +338,7 @@ kbd{ font:600 .78rem var(--ui-font); padding:.05em .4em; border:1px solid var(--
           <option value="freq">Frequenza</option>
         </select>
         <label class="toggle" title="Una sola tessera per le parole ripetute con il numero di copie"><input type="checkbox" id="group"> Raggruppa</label>
+        <label class="toggle" title="Mostra nella banca solo le tessere colorate in viola o in verde"><input type="checkbox" id="onlySugg"> Solo colorate</label>
         <button class="btn" id="btnShuffle2" title="Riordina a caso le tessere della banca">Mescola</button>
       </div>
     </div>
@@ -381,7 +393,10 @@ kbd{ font:600 .78rem var(--ui-font); padding:.05em .4em; border:1px solid var(--
     </ul>
     <h4>Suggerimenti ed echi</h4>
     <ul>
-      <li>I suggerimenti guardano le una o due tessere prima del cursore e quella dopo. Propongono le parole della banca che nell'originale compaiono in quella posizione (bigrammi e trigrammi). Le tessere suggerite si colorano di verde anche nella banca.</li>
+      <li>La parola scelta è quella subito prima del cursore: clicca una tessera del tavolo per sceglierla.</li>
+      <li><b>Viola</b>: le tessere della banca che possono seguirla grammaticalmente. L'app riconosce articoli, preposizioni, pronomi, congiunzioni, negazione e le principali forme verbali; controlla genere, numero e suono iniziale (<i>il</i> vuole un maschile singolare che non cominci per vocale o s impura; dopo il punto serve la maiuscola). È un'euristica permissiva: filtra molto dopo le parole grammaticali, poco dopo nomi e verbi.</li>
+      <li><b>Verde</b>: le parole che nel testo originale compaiono davvero in quella posizione (bigrammi e trigrammi). Se una tessera è sia verde sia viola prevale il verde.</li>
+      <li>Il menu accanto a «+ Riga» sceglie quali colori mostrare. «Solo colorate» riduce la banca alle tessere evidenziate.</li>
       <li><b>Echi</b> colora di ambra le coppie adiacenti sul tavolo che esistono già nell'originale: serve a misurare quanto ti stai allontanando dalla fonte.</li>
     </ul>
   </div>
@@ -438,13 +453,15 @@ const S = {
   bank: [],       // id presenti nella banca, in ordine
   board: [[]],    // righe del tavolo: array di id
   line: 0,        // riga attiva
-  caret: 0        // posizione del cursore nella riga attiva
+  caret: 0,       // posizione del cursore nella riga attiva
+  feat: []        // profili grammaticali delle tessere (derivati, non salvati)
 };
-const UI = { filter: '', sort: 'bank', group: false, echoes: false, limit: LIMIT };
+const UI = { filter: '', sort: 'bank', group: false, echoes: false, limit: LIMIT, hint: 'both', only: false };
 let model = { next: new Map(), prev: new Map(), tri: new Map() };
 let stats = { words: 0, punct: 0 };
 let BI = new Map();        // indice della banca: testo -> [id]
-let lastSuggSet = new Set();
+let lastSuggSet = new Set();   // verdi
+let lastGramSet = new Set();   // viola
 let echoCount = 0;
 
 /* ---------- cronologia (annulla/ripeti) ---------- */
@@ -488,7 +505,233 @@ function buildModel(){
     if (ENDS.test(t)) atStart = true;
   }
   model = { next, prev, tri };
+  S.feat = S.tokens.map(tokFeat);
 }
+
+/* =========================================================
+   3b. COMPATIBILITÀ GRAMMATICALE (euristica per l'italiano)
+   Ogni tessera riceve due profili:
+   - L: come si presenta a chi la precede (classe della prima parola,
+        genere e numero, suono iniziale, maiuscola)
+   - R: che cosa ammette dopo di sé (classe dell'ultima parola
+        oppure segno finale)
+   Le classi sono bit: una parola ambigua ne ha più d'uno e la coppia
+   è ammessa se almeno una lettura funziona. L'euristica è permissiva:
+   esclude gli accostamenti chiaramente sgrammaticati più che
+   garantire quelli corretti.
+   ========================================================= */
+const C = { ART:1<<0, PREP:1<<1, PREPART:1<<2, DET:1<<3, DETA:1<<4, CONJ:1<<5, SUB:1<<6, PRON:1<<7, CLI:1<<8, NEG:1<<9,
+            VERB:1<<10, VINF:1<<11, VGER:1<<12, NOM:1<<13, ADV:1<<14, NUM:1<<15, REL:1<<16,
+            OPEN:1<<17, CLOSE:1<<18, QCLOSE:1<<19, OTHER:1<<20 };
+const LAST_BIT = C.OTHER;
+const MS = 1, FS = 2, MP = 4, FP = 8, ALLG = 15;   // genere e numero come maschera di bit
+
+/* ---------- lessico delle parole grammaticali ---------- */
+const LEX = new Map();
+function addLex(words, cls, spec){
+  for (const w of words.trim().split(/\s+/)){
+    const e = LEX.get(w) || { cls: 0 };
+    e.cls |= cls;
+    if (spec){ e.agr = spec[0]; e.need = spec[1]; }
+    LEX.set(w, e);
+  }
+}
+/* articoli: [genere/numero, suoni iniziali ammessi]
+   C = consonante semplice · S = s impura, z, gn, ps, pn, x, y · V = vocale o h */
+const ARTS = { il:[MS,'C'], lo:[MS,'SV'], la:[FS,'CS'], i:[MP,'C'], gli:[MP,'SV'], le:[FP,'CSV'], un:[MS,'CV'], uno:[MS,'S'], una:[FS,'CS'] };
+for (const w in ARTS) addLex(w, C.ART, ARTS[w]);
+for (const p of ['de', 'a', 'da', 'ne', 'su']){
+  addLex(p + 'l', C.PREPART, ARTS.il);  addLex(p + 'llo', C.PREPART, ARTS.lo);  addLex(p + 'lla', C.PREPART, ARTS.la);
+  addLex(p + 'i', C.PREPART, ARTS.i);   addLex(p + 'gli', C.PREPART, ARTS.gli); addLex(p + 'lle', C.PREPART, ARTS.le);
+}
+addLex('col', C.PREPART, ARTS.il); addLex('coi', C.PREPART, ARTS.i);
+addLex("l'", C.ART, [MS|FS, 'V']); addLex("un'", C.ART, [FS, 'V']);
+addLex("dell' all' dall' nell' sull'", C.PREPART, [MS|FS, 'V']); addLex("de'", C.PREPART, [MP, '']);
+addLex('lo la li le gli', C.CLI);
+[['quel',MS,'C'],['quei',MP,'C'],['quegli',MP,'SV'],['bel',MS,'C'],['bei',MP,'C'],['begli',MP,'SV'],
+ ['ogni',MS|FS,''],['qualche',MS|FS,''],['qualsiasi',ALLG,''],['qualunque',ALLG,''],
+ ['nessun',MS,'CV'],['alcun',MS,'CV'],['ciascun',MS,'CV'],['buon',MS,'CV'],['gran',ALLG,'CS'],['san',MS,'C'],
+ ["quest'",MS|FS,'V'],["quell'",MS|FS,'V'],["bell'",MS|FS,'V'],["sant'",MS|FS,'V']
+].forEach(([w, a, n]) => addLex(w, C.DETA, [a, n]));
+const fam = (stem, cls) => { addLex(stem+'o', cls, [MS,'']); addLex(stem+'a', cls, [FS,'']); addLex(stem+'i', cls, [MP,'']); addLex(stem+'e', cls, [FP,'']); };
+'quest quell codest cotest alcun nessun ciascun quant'.split(' ').forEach(s => fam(s, C.DET));
+'tutt molt tant tropp altr parecchi'.split(' ').forEach(s => fam(s, C.DET));
+addLex('poco', C.DET, [MS,'']); addLex('poca', C.DET, [FS,'']); addLex('pochi', C.DET, [MP,'']); addLex('poche', C.DET, [FP,'']);
+addLex('parecchi', C.DET, [MP,'']); addLex('tale', C.DET, [MS|FS,'']); addLex('tali', C.DET, [MP|FP,'']);
+addLex('quale', C.DET|C.SUB|C.REL, [MS|FS,'']); addLex('quali', C.DET|C.SUB|C.REL, [MP|FP,'']);
+addLex('quanto quanta quanti quante', C.SUB);
+addLex('di a ad da in con su per tra fra senza verso contro presso oltre entro tranne attraverso mediante durante lungo sopra sotto dentro fuori dietro davanti dopo prima circa', C.PREP);
+addLex('e ed o od ma né però anzi oppure ovvero eppure pure dunque quindi infatti inoltre tuttavia bensì nemmeno neanche neppure anche sia', C.CONJ);
+addLex('che se perché poiché giacché benché sebbene affinché finché purché quando mentre come dove ove onde cioè qualora siccome allorché ché chi ossia laddove', C.SUB);
+addLex('cui', C.REL);
+addLex('io tu egli ella esso essa noi voi essi esse lui lei loro sé me te ciò chi qualcuno qualcosa niente nulla ognuno chiunque altrui', C.PRON);
+addLex('mi ti si ci vi ne me te se ce ve glielo gliela glieli gliele gliene', C.CLI);
+addLex('non', C.NEG);
+addLex("più meno già sempre mai ancora poi ora allora qui qua lì là quassù laggiù lassù così molto poco troppo tanto bene male meglio peggio forse solo soltanto ieri oggi domani presto tardi insieme invece subito spesso talvolta appena quasi tuttora ecco sì no proprio davvero piuttosto altrove ovunque dovunque intanto infine almeno perfino persino addirittura indietro avanti giù via ormai oramai omai ivi quivi colà tosto po' mo' pur ci vi dopo prima sopra sotto dentro fuori fino sino", C.ADV);
+addLex('loro', C.NOM, [ALLG,'']); addLex('solo bene male meglio niente nulla', C.NOM, [MS,'']); addLex('prima via ora era', C.NOM, [FS,'']);
+addLex("po'", C.NOM, [MS,'C']);
+addLex(`è sono sei siamo siete era eri ero eravamo eravate erano fu fui fosti fummo foste furono sarà sarò sarai saremo sarete saranno sarebbe sarebbero sia siano fosse fossi fossero
+ ho hai ha abbiamo avete hanno avevo avevi aveva avevamo avevate avevano ebbi avesti ebbe ebbero avrà avrò avrebbe avrebbero abbia abbiano avesse avessero
+ faccio fai fa facciamo fate fanno faceva facevano fece fecero farà vado vai va andiamo andate vanno andava andò vo
+ sto stai sta stiamo state stanno stava stette do dai dà danno diede dico dici dice diciamo dite dicono diceva disse dissero
+ posso puoi può possiamo potete possono poteva potrà potrebbe possa voglio vuoi vuole vuol vogliamo volete vogliono voleva volle vorrei vorrebbe
+ devo devi deve dobbiamo dovete devono doveva dovrà dovrebbe so sai sa sappiamo sapete sanno sapeva seppe
+ vengo vieni viene vien veniamo venite vengono veniva venne vennero vedo vedi vede vediamo vedete vedono vedeva vide videro son han fia fur`, C.VERB);
+addLex('essere avere fare andare stare dare dire potere volere dovere sapere venire vedere', C.VINF | C.NOM, [MS,'']);
+addLex('due tre quattro cinque sei sette otto nove dieci venti cento mille uno', C.NUM);
+
+/* ---------- morfologia delle parole non in lessico ---------- */
+const RX_STRONG_V = /(?:iamo|arono|erono|irono|avano|evano|ivano|rebbe|rebbero|ssero|ssimo|ammo|emmo|immo|ranno|avamo|evamo|ivamo|avate|evate|ivate)$/;
+const RX_WEAK_V = /(?:ano|ono|ava|eva|iva|avo|evo|sse|ssi|rà|rò|rai|remo|rete|asti|esti|isti|aste|este|iste|ete|ò|ì)$/;
+const RX_INF = /[aei]r(?:e|si|mi|ti|ci|vi|lo|la|li|le|ne|gli)?$/;
+const RX_GER = /(?:ando|endo)(?:si|mi|ti|ci|vi|lo|la|li|le|ne|gli)?$/;
+const RX_NOUN = /(?:zione|zioni|sione|sioni|mento|ezza|ezze|ismo|ismi|ista|tore|tori|trice|trici|aggio|anza|anze|enza|enze|udine|issim[oaie]|ion[ei]|os[oaie]|tà|tù)$/;
+
+function agrOf(w){
+  if (/t[àù]$/.test(w)) return FS | FP;
+  if (/[àèéìíòóù]$/.test(w)) return ALLG;
+  const e = w[w.length - 1];
+  if (e === 'o') return MS;
+  if (e === 'a') return /(?:ema|oma|amma|ista|eta|arca)$/.test(w) ? MS | FS : FS;
+  if (e === 'e') return MS | FS | FP;
+  if (e === 'i') return /si$/.test(w) ? FS | MP | FP : MP | FP;
+  return ALLG;                                  // troncamenti (cor, pensier) e parole straniere
+}
+function initCat(w){
+  if (/^[aeiouàèéìíòóùh]/.test(w)) return 'V';
+  if (/^(?:s[^aeiouàèéìíòóù]|z|gn|ps|pn|x|y)/.test(w)) return 'S';
+  return 'C';
+}
+function wordInfo(w){
+  if (/^\p{N}/u.test(w)) return { cls: C.NUM, agr: ALLG, w };
+  const e = LEX.get(w);
+  if (e){
+    const agr = e.agr !== undefined ? e.agr : (e.cls & C.NOM ? agrOf(w) : ALLG);
+    return { cls: e.cls, agr, need: e.need || '', w, vcap: !!(e.cls & C.VERB) };
+  }
+  if (w.length >= 6 && w.endsWith('mente')) return { cls: C.ADV, agr: ALLG, w };
+  if (w.length >= 5 && RX_GER.test(w) && !/(?:rrendo|tremendo|stupendo|reverendo|comando)$/.test(w))
+    return { cls: C.VGER, agr: ALLG, need: '', w, vcap: true };   // gerundio
+  let cls;
+  if (w.length >= 6 && RX_STRONG_V.test(w)) cls = C.VERB;
+  else { cls = C.NOM; if (w.length >= 4 && RX_WEAK_V.test(w)) cls |= C.VERB; }
+  if (w.length >= 4 && RX_INF.test(w)) cls |= C.VINF;
+  if (w.length >= 5 && RX_GER.test(w)) cls |= C.VGER;
+  const strongNom = cls === C.NOM && w.length >= 4 && RX_NOUN.test(w);
+  /* vcap: potrebbe essere un verbo non riconosciuto (in italiano quasi ogni parola in vocale lo è) */
+  return { cls, agr: agrOf(w), need: '', w, strongNom, vcap: !!(cls & C.VERB) || (!!(cls & C.NOM) && !strongNom) };
+}
+
+/* prefissi elisi: classe con cui la tessera si presenta a chi la precede */
+const ELIDE = { un:C.ART, quest:C.ART, quell:C.ART, codest:C.ART, bell:C.ART, sant:C.ART, tutt:C.ART, nessun:C.ART, alcun:C.ART, ciascun:C.ART, buon:C.ART, grand:C.ART,
+  dell:C.PREPART, all:C.PREPART, dall:C.PREPART, nell:C.PREPART, sull:C.PREPART, coll:C.PREPART, d:C.PREP, senz:C.PREP,
+  m:C.CLI, t:C.CLI, s:C.CLI, c:C.CLI, v:C.CLI, n:C.CLI, ch:C.SUB, ov:C.SUB, dov:C.SUB, com:C.SUB, quand:C.SUB, anch:C.CONJ };
+
+function punctKind(p){
+  if (/…|\.{2,}/.test(p)) return 'ell';
+  if (/[.!?]/.test(p)) return 'end';
+  if (/[,;:]/.test(p)) return 'mid';
+  if (/^[«“‘(\[{]/.test(p)) return 'open';
+  if (/[»”’)\]}]/.test(p)) return 'qclose';
+  if (/^["']+$/.test(p)) return 'quote';
+  return 'other';
+}
+const PUNCT_CLS = { ell:C.CLOSE, end:C.CLOSE, mid:C.CLOSE, open:C.OPEN, qclose:C.QCLOSE, quote:C.OPEN|C.QCLOSE, other:C.OTHER };
+
+function tokFeat(tok){
+  const t = tok.replace(/’/g, "'");
+  const m = t.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}']*)$/u);
+  const lead = m[1], core = m[2], trail = m[3];
+  if (!core){
+    const k = punctKind(t), f = { cls: PUNCT_CLS[k], punct: k, agr: ALLG, w: t };
+    return { L: f, R: f };
+  }
+  const low = core.toLowerCase(), cap = /^\p{Lu}/u.test(core), parts = low.split("'");
+  let L, R;
+  if (lead){
+    L = { cls: PUNCT_CLS[punctKind(lead)], agr: ALLG, w: lead };
+  } else if (parts.length > 1 && parts[0] && parts[parts.length - 1]){
+    const head = wordInfo(parts.slice(1).join("'"));
+    let cls = ELIDE[parts[0]];
+    if (parts[0] === 'l') cls = head.cls & C.VERB ? C.CLI : C.ART;   // l'eterno / l'ho
+    L = cls !== undefined ? { cls, agr: head.agr, ini: 'V', w: parts[0] + "'", cap }
+                          : { ...wordInfo(parts[0]), ini: initCat(parts[0]), cap };
+  } else {
+    L = { ...(LEX.has(low) ? wordInfo(low) : wordInfo(parts[0] || low)), ini: initCat(low), cap };
+  }
+  if (trail) { const k = punctKind(trail); R = { cls: PUNCT_CLS[k], punct: k, agr: ALLG, w: trail }; }
+  else if (parts.length > 1 && parts[parts.length - 1]) R = wordInfo(parts[parts.length - 1]);
+  else R = LEX.has(low) ? wordInfo(low) : wordInfo(parts[0] || low);
+  return { L, R };
+}
+
+/* ---------- regole di successione ---------- */
+const TUTTO = /^tutt[oaie]$/;
+const CONJ_CLOSE = new Set('ma però dunque quindi anzi pure eppure oppure invece anche infatti tuttavia'.split(' '));
+const SUB_CLOSE = new Set('perché come quando dove cioè chi che quanto'.split(' '));
+const CLI_LONG = new Set('me te se ce ve'.split(' '));      // me lo, se ne
+const CLI_SHORT = new Set('mi ti ci vi'.split(' '));        // mi si, ci si
+const CLI_OBJ = new Set('lo la li le ne'.split(' '));
+const SUBJ = new Set('io tu egli ella esso essa essi esse'.split(' '));
+const ART_DET = /^(?:tutt|molt|tant|poc|pochi|poche|tropp|altr|parecchi|tal)/;   // il tutto, gli altri, i pochi
+const initOK = (need, ini) => !need || !ini || need.includes(ini);
+
+function canFollow(A, B){
+  if (!A || !B) return false;
+  if (A.punct) return punctFollow(A.punct, B);
+  for (let a = 1; a <= LAST_BIT; a <<= 1) if ((A.cls & a) && classFollow(a, A, B)) return true;
+  return false;
+}
+function punctFollow(k, B){
+  const b = B.cls;
+  switch (k){
+    case 'end':    return !!B.cap || !!(b & (C.OPEN | C.QCLOSE | C.NUM | C.OTHER));   // dopo il punto: maiuscola
+    case 'open':   return !!(b & ~(C.CLOSE | C.QCLOSE));
+    case 'qclose': case 'quote': return true;
+    default:       return !!(b & ~C.CLOSE);                                             // , ; : … e altri segni
+  }
+}
+function classFollow(a, A, B){
+  const b = B.cls, has = m => (b & m) !== 0;
+  switch (a){
+    case C.ART: case C.PREPART: case C.DETA:          // accordo di genere e numero + suono iniziale
+      if (has(C.NOM) && (A.agr & B.agr) && initOK(A.need, B.ini)) return true;
+      if (a === C.DETA) return false;
+      if (has(C.DET) && ART_DET.test(B.w) && (A.agr & B.agr) && initOK(A.need, B.ini)) return true;
+      if (has(C.VINF) && (A.agr & MS) && initOK(A.need, B.ini)) return true;   // il naufragar
+      return has(C.NUM | C.REL) || B.w === 'più' || B.w === 'meno';
+    case C.PREP:
+      if (has(C.PRON) && !SUBJ.has(B.w)) return true;                     // con me, di lei (non: di io)
+      return has(C.ART | C.DET | C.DETA | C.NOM | C.VINF | C.REL | C.ADV | C.NUM | C.OPEN | C.SUB | C.OTHER);
+    case C.DET:
+      if (has(C.NOM) && (A.agr & B.agr)) return true;
+      if (TUTTO.test(A.w) && (has(C.ART) || /^(?:noi|voi|loro|essi|esse)$/.test(B.w)) && (A.agr & B.agr)) return true;   // tutti i, tutti noi
+      return has(C.VERB | C.PREP | C.PREPART | C.SUB | C.CONJ | C.ADV | C.CLI | C.NEG | C.CLOSE | C.QCLOSE | C.OTHER);
+    case C.CONJ:
+      return !!(b & ~(C.CLOSE | C.QCLOSE)) || CONJ_CLOSE.has(A.w);
+    case C.SUB:
+      return !!(b & ~(C.CLOSE | C.QCLOSE | C.CONJ)) || SUB_CLOSE.has(A.w);
+    case C.REL:
+      return has(C.VERB | C.PRON | C.CLI | C.NEG | C.ART | C.DET | C.DETA | C.NOM | C.ADV | C.PREP | C.PREPART);
+    case C.PRON:
+      return has(C.VERB | C.CLI | C.NEG | C.ADV | C.CONJ | C.SUB | C.PREP | C.PREPART | C.CLOSE | C.QCLOSE | C.OTHER | C.DET) || (has(C.NOM) && !!B.vcap);
+    case C.CLI:                                          // pronome atono: vuole un verbo
+      if (has(C.VERB)) return true;
+      if (has(C.CLI) && ((CLI_LONG.has(A.w) && CLI_OBJ.has(B.w)) || (CLI_SHORT.has(A.w) && B.w === 'si'))) return true;
+      return !(A.cls & C.ART) && has(C.NOM) && !!B.vcap;
+    case C.NEG:
+      return has(C.VERB | C.VINF | C.VGER | C.CLI | C.ADV | C.DET | C.PRON | C.SUB | C.PREP | C.PREPART) || (has(C.NOM) && !!B.vcap);
+    case C.VERB: case C.VINF: case C.VGER:
+      return !!(b & ~(C.CLI | C.NEG | C.REL));
+    case C.NOM:                                          // due nomi/aggettivi puri contigui devono accordarsi
+      if (b === C.NOM && A.cls === C.NOM && !B.cap && !(A.agr & B.agr)) return false;
+      if (A.strongNom && !(b & ~(C.ART | C.DETA))) return false;          // la stazione il: no
+      return true;
+    default:                                             // avverbi, numeri
+      return true;
+  }
+}
+
 
 /* =========================================================
    4. RIFERIMENTI DOM
@@ -500,7 +743,7 @@ const el = {
   board: $('board'), boardScroll: $('boardScroll'), newLine: $('newLine'),
   sugg: $('sugg'), counts: $('counts'), meter: $('meter'),
   bank: $('bank'), bankScroll: $('bankScroll'), bankPanel: $('bankPanel'),
-  filter: $('filter'), sort: $('sort'), group: $('group'), echoes: $('echoes'),
+  filter: $('filter'), sort: $('sort'), group: $('group'), echoes: $('echoes'), hintMode: $('hintMode'), onlySugg: $('onlySugg'),
   btnUndo: $('btnUndo'), btnRedo: $('btnRedo'), btnSaves: $('btnSaves'), btnHelp: $('btnHelp'), btnReset: $('btnReset'),
   btnAddLine: $('btnAddLine'), btnClear: $('btnClear'), btnCopy: $('btnCopy'), btnTxt: $('btnTxt'),
   dlgSaves: $('dlgSaves'), dlgHelp: $('dlgHelp'), saveName: $('saveName'), btnSaveNew: $('btnSaveNew'),
@@ -533,10 +776,12 @@ function bankIndex(){
 
 function render(){
   BI = bankIndex();
-  const sugg = computeSuggestions();
+  const sugg = UI.hint === 'orig' || UI.hint === 'both' ? computeSuggestions() : { label: '', items: [] };
   lastSuggSet = new Set(sugg.items.map(i => i.text));
+  const gram = UI.hint === 'gram' || UI.hint === 'both' ? computeGram() : { anchor: -1, set: new Set() };
+  lastGramSet = gram.set;
   renderBoard();
-  renderSugg(sugg);
+  renderSugg(sugg, gram);
   renderBank();
   renderCounts();
   renderButtons();
@@ -603,17 +848,20 @@ function renderBank(){
   }
   const f = UI.filter.toLowerCase();
   if (f) items = items.filter(it => it.text.toLowerCase().includes(f));
+  if (UI.only) items = items.filter(it => lastSuggSet.has(it.text) || lastGramSet.has(it.text));
   if (UI.sort === 'az') items.sort((a, b) => COLL.compare(a.text, b.text));
   else if (UI.sort === 'freq') items.sort((a, b) => (BI.get(b.text).length - BI.get(a.text).length) || COLL.compare(a.text, b.text));
 
   if (!items.length){
-    el.bank.innerHTML = `<p class="hint">Nessuna tessera contiene «${esc(UI.filter)}».</p>`;
+    el.bank.innerHTML = UI.filter
+      ? `<p class="hint">Nessuna tessera contiene «${esc(UI.filter)}».</p>`
+      : '<p class="hint">Nessuna tessera colorata per la parola scelta. Togli la spunta a «Solo colorate» per vedere tutta la banca.</p>';
     return;
   }
   const shown = items.slice(0, UI.limit);
   let html = '';
   for (const it of shown){
-    const cls = lastSuggSet.has(it.text) ? ' sugg' : '';
+    const cls = lastSuggSet.has(it.text) ? ' sugg' : lastGramSet.has(it.text) ? ' gram' : '';
     const t = S.tokens[it.id];
     html += `<span class="chip${isPunct(t) ? ' punct' : ''}${cls}" data-id="${it.id}" data-src="bank">${esc(t)}${it.n > 1 ? `<i class="n">${it.n}</i>` : ''}</span>`;
   }
@@ -638,7 +886,6 @@ function renderButtons(){
   el.btnUndo.disabled = !H.past.length;
   el.btnRedo.disabled = !H.future.length;
   el.btnShuffle.disabled = el.btnShuffle2.disabled = S.bank.length < 2;
-  el.btnReset.disabled = !has;
   el.btnClear.disabled = !has || S.bank.length === S.tokens.length;
   el.btnCopy.disabled = el.btnTxt.disabled = !has || S.bank.length === S.tokens.length;
   el.btnAddLine.disabled = !has;
@@ -679,16 +926,36 @@ function computeSuggestions(){
   return res;
 }
 
-function renderSugg(res){
-  if (!S.tokens.length){ el.sugg.innerHTML = ''; return; }
+/* tessere della banca che possono seguire grammaticalmente la parola prima del cursore */
+function computeGram(){
+  const line = S.board[S.line] || [];
+  const anchor = S.caret > 0 ? line[S.caret - 1] : -1;
+  const set = new Set();
+  if (anchor < 0 || !S.feat.length) return { anchor, set };
+  const R = S.feat[anchor].R;
+  for (const [t, ids] of BI) if (canFollow(R, S.feat[ids[0]].L)) set.add(t);
+  return { anchor, set };
+}
+
+function renderSugg(res, gram){
+  if (!S.tokens.length || UI.hint === 'none'){ el.sugg.innerHTML = ''; return; }
   if (!S.bank.length){ el.sugg.innerHTML = '<span class="sugg-label">Tutte le tessere sono in gioco.</span>'; return; }
-  let h = `<span class="sugg-label">${esc(res.label)}:</span>`;
-  if (res.items.length){
-    h += res.items.map(it =>
-      `<span class="chip sugg${isPunct(it.text) ? ' punct' : ''}" data-text="${esc(it.text)}" title="Inserisci al cursore">${esc(it.text)}${it.count > 1 ? `<i class="n">${it.count}</i>` : ''}</span>`
-    ).join('');
-  } else {
-    h += '<span class="sugg-none">nessun accostamento attestato nell\'originale</span>';
+  let h = '';
+  if (UI.hint !== 'orig'){
+    if (gram.anchor < 0){
+      h += '<span class="sugg-label">Scegli una parola sul tavolo: le tessere che possono seguirla si colorano di viola.</span>';
+    } else {
+      let n = 0;
+      for (const t of gram.set) n += BI.get(t).length;
+      h += `<span class="sugg-label">Dopo «${esc(S.tokens[gram.anchor])}» possono venire <b class="violet-n">${fmt(n)}</b> ${n === 1 ? 'tessera' : 'tessere'}</span>`;
+    }
+  }
+  if (UI.hint !== 'gram'){
+    if (h) h += '<span class="sugg-sep"></span>';
+    h += `<span class="sugg-label">Dal testo, ${esc(res.label)}:</span>`;
+    h += res.items.length
+      ? res.items.map(it => `<span class="chip sugg${isPunct(it.text) ? ' punct' : ''}" data-text="${esc(it.text)}" title="Inserisci al cursore">${esc(it.text)}${it.count > 1 ? `<i class="n">${it.count}</i>` : ''}</span>`).join('')
+      : '<span class="sugg-none">nessun accostamento attestato</span>';
   }
   el.sugg.innerHTML = h;
 }
@@ -834,13 +1101,25 @@ function shuffleBank(){
   mutate(() => shuffle(S.bank));
   el.bankScroll.scrollTop = 0;
 }
+/* Reset: azzeramento completo. Svuota riquadro, banca, tavolo, cronologia
+   e autosalvataggio. I salvataggi con nome non vengono toccati. */
 function resetAll(){
-  if (!S.tokens.length) return;
-  if (!confirm('Ripartire dal testo originale? Il tavolo verrà svuotato. Potrai comunque annullare.')) return;
-  mutate(() => { S.bank = S.tokens.map((_, i) => i); S.board = [[]]; S.line = 0; S.caret = 0; });
-  el.src.value = S.original; updateStatus();
+  if (!S.tokens.length && !S.original && !el.src.value.trim()) return;
+  if (!confirm('Cancellare tutto? Testo, banca e tavolo verranno svuotati. L\'operazione non si può annullare. I salvataggi con nome restano.')) return;
+  clearTimeout(saveT);
+  if (LS){ try { LS.removeItem(KEY_AUTO); } catch (e){ } }
+  S.original = ''; S.mode = selectedMode();
+  S.tokens = []; S.keys = []; S.bank = []; S.board = [[]]; S.line = 0; S.caret = 0;
+  model = { next: new Map(), prev: new Map(), tri: new Map() };
+  S.feat = [];
+  stats = { words: 0, punct: 0 };
+  H.past = []; H.future = [];
   UI.filter = ''; el.filter.value = ''; UI.sort = 'bank'; UI.limit = LIMIT;
-  syncControls(); render();
+  el.src.value = ''; el.details.open = true;
+  syncControls(); updateStatus(); render();
+  el.bankScroll.scrollTop = 0; el.boardScroll.scrollTop = 0;
+  el.src.focus();
+  toast('Tutto azzerato');
 }
 function clearBoard(){
   mutate(() => { S.bank = S.board.flat().concat(S.bank); S.board = [[]]; S.line = 0; S.caret = 0; });
@@ -850,6 +1129,8 @@ function syncControls(){
   el.sort.value = UI.sort;
   el.group.checked = UI.group;
   el.echoes.checked = UI.echoes;
+  el.hintMode.value = UI.hint;
+  el.onlySugg.checked = UI.only;
 }
 
 /* =========================================================
@@ -914,7 +1195,7 @@ function serialize(){
     app: 'anagrafia', v: 1, savedAt: new Date().toISOString(),
     original: S.original, mode: S.mode, tokens: S.tokens,
     bank: S.bank, board: S.board, line: S.line, caret: S.caret,
-    ui: { sort: UI.sort, group: UI.group, echoes: UI.echoes }
+    ui: { sort: UI.sort, group: UI.group, echoes: UI.echoes, hint: UI.hint }
   };
 }
 /* ripristina lo stato verificando che ogni tessera compaia una e una sola volta */
@@ -938,6 +1219,7 @@ function deserialize(o){
   if (o.ui){
     UI.sort = ['bank', 'az', 'freq'].includes(o.ui.sort) ? o.ui.sort : 'bank';
     UI.group = !!o.ui.group; UI.echoes = !!o.ui.echoes;
+    UI.hint = ['both', 'gram', 'orig', 'none'].includes(o.ui.hint) ? o.ui.hint : 'both';
   }
   UI.filter = ''; el.filter.value = ''; UI.limit = LIMIT;
   H.past = []; H.future = [];
@@ -1224,6 +1506,8 @@ el.fileTxt.addEventListener('change', () => {
 el.btnAddLine.addEventListener('click', addLineAfterActive);
 el.btnClear.addEventListener('click', clearBoard);
 el.echoes.addEventListener('change', () => { UI.echoes = el.echoes.checked; render(); scheduleSave(); });
+el.hintMode.addEventListener('change', () => { UI.hint = el.hintMode.value; render(); scheduleSave(); });
+el.onlySugg.addEventListener('change', () => { UI.only = el.onlySugg.checked; UI.limit = LIMIT; renderBank(); });
 el.btnCopy.addEventListener('click', async () => {
   const ok = await copyText(boardText());
   toast(ok ? 'Testo copiato' : 'Copia non riuscita: usa Scarica');
