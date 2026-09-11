@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anagrafia · tavolo di ricomposizione</title>
+<style>
+/* =========================================================
+   TOKEN DI DESIGN
+   Metafora: il compositoio del tipografo. Il tavolo è zinco,
+   ogni riga è un canale incassato, le parole sono tessere di bosso.
+   ========================================================= */
+:root{
+  --zinc:#d5d9dd;        /* fondo pagina */
+  --plate:#e9ecef;       /* pannelli */
+  --channel:#cfd4d9;     /* canale della riga */
+  --ink:#1c1f24;         /* testo */
+  --muted:#5d656e;
+  --rule:#b9c0c7;
+  --tile:#eadcbf;        /* tessera */
+  --tile-face:#f3e8d2;
+  --tile-edge:#b99f6f;
+  --blue:#2446c8;        /* cursore, marcatore, avanzamento */
+  --blue-soft:#d5dcf7;
+  --green:#17745e;       /* suggerimenti */
+  --green-soft:#cfe8df;
+  --amber:#b77a0c;       /* echi */
+  --amber-soft:#f4e2b8;
+  --tile-font: Charter,"Bitstream Charter","Sitka Text",Cambria,"Iowan Old Style",serif;
+  --ui-font: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --zinc:#1e2226; --plate:#272c31; --channel:#1a1e22; --ink:#e7eaee; --muted:#9aa3ad; --rule:#3b434b;
+    --tile:#cbb88f; --tile-face:#dccba6; --tile-edge:#8d7648;
+    --blue:#7d97ff; --blue-soft:#2b3563; --green:#5cc5a6; --green-soft:#1d3b33; --amber:#e3ad45; --amber-soft:#4a3a17;
+  }
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{
+  background:var(--zinc); color:var(--ink);
+  font:15px/1.45 var(--ui-font);
+  -webkit-text-size-adjust:100%;
+}
+button,input,select,textarea{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+
+/* ---------- intestazione ---------- */
+.top{
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:10px 20px;
+  padding:18px 20px 12px;
+}
+.brand h1{
+  margin:0; font:600 1.9rem/1 var(--tile-font); letter-spacing:.01em;
+}
+.brand p{ margin:4px 0 0; color:var(--muted); font-size:.88rem; }
+.top-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+
+/* ---------- pulsanti e controlli ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:.35em;
+  padding:.42em .8em; border:1px solid var(--rule); border-radius:6px;
+  background:var(--plate); cursor:pointer; white-space:nowrap; font-size:.88rem;
+}
+.btn:hover:not(:disabled){ border-color:var(--ink); }
+.btn:disabled{ opacity:.45; cursor:default; }
+.btn.primary{ background:var(--ink); color:var(--plate); border-color:var(--ink); }
+.btn.quiet{ background:transparent; }
+.toggle{ display:inline-flex; align-items:center; gap:.35em; font-size:.88rem; cursor:pointer; user-select:none; }
+input[type=search], select{
+  padding:.4em .6em; border:1px solid var(--rule); border-radius:6px; background:var(--zinc); font-size:.88rem;
+}
+input[type=search]{ width:13em; min-width:0; }
+
+/* ---------- pannelli ---------- */
+.panel{ background:var(--plate); border-radius:10px; border:1px solid var(--rule); }
+.source{ margin:0 16px 14px; }
+.source summary{
+  cursor:pointer; padding:10px 14px; font-weight:600; list-style:none; display:flex; align-items:center; gap:.5em;
+}
+.source summary::-webkit-details-marker{ display:none; }
+.source summary::before{ content:"▸"; color:var(--muted); transition:transform .15s; }
+.source details[open] summary::before{ transform:rotate(90deg); }
+.source-body{ padding:0 14px 12px; }
+#srcText{
+  width:100%; min-height:180px; height:26vh; resize:vertical;
+  padding:12px 14px; border:1px solid var(--rule); border-radius:6px; background:var(--zinc);
+  font:1rem/1.6 var(--tile-font);
+}
+.source-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; }
+.mode{ border:0; margin:0; padding:0; display:flex; align-items:center; gap:12px; font-size:.88rem; }
+.mode legend{ float:left; margin-right:4px; color:var(--muted); }
+.source-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+.status{ margin:8px 0 0; font-size:.84rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.warn{ color:var(--amber); }
+
+/* ---------- area di lavoro ---------- */
+.work{
+  display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:14px;
+  padding:0 16px 16px;
+}
+.board-panel,.bank-panel{
+  display:flex; flex-direction:column; min-height:0;
+  height:calc(100vh - 28px); height:calc(100dvh - 28px); min-height:440px;
+}
+.panel-head{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;
+  padding:10px 12px 8px;
+}
+.panel-head h2{ margin:0; font:600 1.15rem/1 var(--tile-font); }
+.tools{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.scroll{ flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
+
+.counts{ padding:0 12px 8px; font-size:.82rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.counts b{ color:var(--ink); font-weight:600; }
+.counts .sep{ display:inline-block; width:1px; height:.8em; background:var(--rule); margin:0 .6em; vertical-align:middle; }
+.counts .done{ color:var(--green); font-weight:600; }
+.counts .echo-n{ color:var(--amber); }
+.meter{ height:3px; background:var(--rule); border-radius:2px; margin-top:5px; overflow:hidden; }
+.meter i{ display:block; height:100%; width:0; background:var(--blue); transition:width .2s; }
+
+/* striscia dei suggerimenti */
+.sugg{
+  display:flex; align-items:center; gap:6px; overflow-x:auto; white-space:nowrap;
+  min-height:46px; padding:6px 12px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  font-size:.82rem; color:var(--muted);
+}
+.sugg:empty{ display:none; }
+.sugg-label{ flex:none; }
+.sugg-none{ font-style:italic; }
+
+/* ---------- righe del tavolo ---------- */
+.board{ padding:10px 10px 0; }
+.line{
+  display:grid; grid-template-columns:2em minmax(0,1fr) 1.9em; align-items:start; gap:4px;
+  margin-bottom:8px;
+}
+.ln{ padding-top:.85em; text-align:right; font-size:.74rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.line-body{
+  display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px;
+  min-height:3em; padding:7px 8px;
+  background:var(--channel); border-radius:4px;
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.14), inset 0 -1px 0 rgba(255,255,255,.35);
+  cursor:text;
+}
+.line.active .line-body{ box-shadow:inset 0 2px 3px rgba(0,0,0,.14), 0 0 0 2px var(--blue-soft); }
+.line.active .ln{ color:var(--blue); font-weight:600; }
+.line-del{
+  margin-top:.55em; width:1.7em; height:1.7em; border:0; border-radius:50%;
+  background:transparent; color:var(--muted); cursor:pointer; opacity:0; font-size:1rem; line-height:1;
+}
+.line:hover .line-del, .line.active .line-del{ opacity:1; }
+.line-del:hover{ background:var(--rule); color:var(--ink); }
+@media (hover:none){ .line-del{ opacity:1; } }
+
+.newline-zone{
+  display:block; width:calc(100% - 2em - 32px); margin:4px 0 14px calc(2em + 14px);
+  padding:.7em; border:1.5px dashed var(--rule); border-radius:4px; background:transparent;
+  color:var(--muted); font-size:.84rem; cursor:pointer;
+}
+.newline-zone:hover, .newline-zone.drop-hover{ border-color:var(--blue); color:var(--blue); }
+
+.caret{
+  display:inline-block; align-self:center; width:2px; height:1.7em; margin:0 -3px;
+  background:var(--blue); border-radius:1px; animation:blink 1.05s steps(1) infinite;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+/* ---------- tessere ---------- */
+.chip{
+  position:relative; display:inline-flex; align-items:baseline; gap:3px;
+  padding:.3em .55em .26em;
+  font:1.04rem/1.2 var(--tile-font); color:#1f1a12;
+  background:linear-gradient(var(--tile-face),var(--tile));
+  border:1px solid var(--tile-edge); border-bottom-width:3px; border-radius:3px;
+  box-shadow:0 1px 1px rgba(0,0,0,.18);
+  cursor:grab; white-space:nowrap;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;
+  touch-action:manipulation;
+}
+.chip:hover{ border-color:#6f5a33; }
+.chip.punct{ min-width:1.7em; justify-content:center; padding-inline:.4em; font-weight:700; }
+.chip .n{ font:600 .66rem/1 var(--ui-font); font-style:normal; color:#6f5a33; }
+.chip.sugg{ background:linear-gradient(var(--green-soft),var(--green-soft)); border-color:var(--green); color:var(--ink); }
+.chip.echo{ background:linear-gradient(var(--amber-soft),var(--amber-soft)); border-color:var(--amber); color:var(--ink); }
+.chip.sel{ box-shadow:0 0 0 2px var(--blue-soft), 0 1px 1px rgba(0,0,0,.18); }
+.chip.dragging{ opacity:.28; }
+.chip .x{
+  display:none; position:absolute; top:-9px; right:-9px; width:20px; height:20px;
+  place-items:center; border-radius:50%; background:var(--ink); color:var(--plate);
+  font:600 13px/1 var(--ui-font); cursor:pointer;
+}
+.chip.sel .x{ display:grid; }
+@media (hover:hover){ .chip:hover .x{ display:grid; } }
+
+.ghost{
+  position:fixed; left:0; top:0; z-index:1000; pointer-events:none; margin:0;
+  box-shadow:0 10px 22px rgba(0,0,0,.28); cursor:grabbing;
+}
+.ghost .x{ display:none !important; }
+body.is-dragging, body.is-dragging *{ cursor:grabbing !important; user-select:none; -webkit-user-select:none; }
+#dropMarker{
+  position:fixed; z-index:999; width:3px; display:none; pointer-events:none;
+  background:var(--blue); border-radius:2px; box-shadow:0 0 0 2px var(--blue-soft);
+}
+
+/* ---------- banca ---------- */
+.bank{ display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px; padding:12px; }
+.bank-panel.drop-hover{ outline:2px dashed var(--blue); outline-offset:-4px; }
+.hint{ color:var(--muted); font-size:.9rem; margin:6px 4px; max-width:46ch; }
+.more{ flex-basis:100%; justify-content:center; margin-top:6px; }
+
+/* ---------- dialoghi e avvisi ---------- */
+dialog{
+  width:min(640px, calc(100vw - 24px)); max-height:calc(100dvh - 40px);
+  padding:0; border:1px solid var(--rule); border-radius:10px; background:var(--plate); color:var(--ink);
+}
+dialog::backdrop{ background:rgba(20,24,28,.45); }
+.dlg-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--rule); }
+.dlg-head h3{ margin:0; font:600 1.15rem/1.2 var(--tile-font); }
+.dlg-body{ padding:12px 16px 16px; }
+.dlg-body h4{ margin:14px 0 4px; font-size:.95rem; }
+.dlg-body p, .dlg-body li{ font-size:.9rem; }
+.dlg-body ul{ padding-left:1.1em; margin:4px 0; }
+kbd{ font:600 .78rem var(--ui-font); padding:.05em .4em; border:1px solid var(--rule); border-bottom-width:2px; border-radius:4px; background:var(--zinc); }
+.save-row{ display:flex; gap:6px; margin-bottom:12px; }
+.save-row input{ flex:1; padding:.45em .6em; border:1px solid var(--rule); border-radius:6px; background:var(--zinc); }
+.saves{ list-style:none; padding:0; margin:0; }
+.saves li{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--rule); }
+.saves small{ display:block; color:var(--muted); font-variant-numeric:tabular-nums; }
+.saves span{ display:flex; gap:6px; }
+.dlg-foot{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; padding-top:12px; border-top:1px solid var(--rule); }
+
+#toast{
+  position:fixed; left:50%; bottom:22px; z-index:2000; transform:translate(-50%,20px);
+  padding:.55em 1em; border-radius:6px; background:var(--ink); color:var(--plate); font-size:.88rem;
+  opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; max-width:calc(100vw - 32px);
+}
+#toast.show{ opacity:1; transform:translate(-50%,0); }
+
+/* ---------- responsivo ---------- */
+@media (max-width:900px){
+  .work{ grid-template-columns:1fr; }
+  .board-panel{ height:62vh; height:62dvh; min-height:360px; }
+  .bank-panel{ height:48vh; height:48dvh; min-height:300px; }
+  input[type=search]{ width:10em; }
+}
+@media (prefers-reduced-motion:reduce){
+  .caret{ animation:none; }
+  .meter i, #toast, .source summary::before{ transition:none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Anagrafia</h1>
+    <p>Le stesse parole di un testo ricomposte in un altro ordine, secondo il principio di Sal Kierkia</p>
+  </div>
+  <nav class="top-actions">
+    <button class="btn" id="btnUndo" title="Annulla (Ctrl/Cmd+Z)">↶ Annulla</button>
+    <button class="btn" id="btnRedo" title="Ripeti (Ctrl/Cmd+Shift+Z)">↷ Ripeti</button>
+    <button class="btn" id="btnSaves" title="Salvataggi locali ed esportazione JSON">Salvataggi</button>
+    <button class="btn" id="btnReset" title="Riparti dal testo originale">Reset</button>
+    <button class="btn" id="btnHelp" title="Istruzioni e scorciatoie">Guida</button>
+  </nav>
+</header>
+
+<!-- ===== 1. TESTO DI PARTENZA ===== -->
+<section class="panel source">
+  <details id="srcDetails" open>
+    <summary>Testo di partenza</summary>
+    <div class="source-body">
+      <textarea id="srcText" spellcheck="false" placeholder="Incolla qui il testo da anagrafare. Può essere lungo anche molte pagine."></textarea>
+      <div class="source-bar">
+        <fieldset class="mode" title="Come trattare i segni di interpunzione nella divisione">
+          <legend>Punteggiatura</legend>
+          <label title="Ogni segno diventa una tessera a sé"><input type="radio" name="mode" value="sep" checked> separata</label>
+          <label title="Il testo si divide solo sugli spazi: i segni restano incollati alle parole"><input type="radio" name="mode" value="att"> attaccata</label>
+        </fieldset>
+        <div class="source-actions">
+          <button class="btn quiet" id="btnSample" title="Inserisce L'infinito di Leopardi">Esempio</button>
+          <label class="btn quiet" title="Apri un file di testo semplice">Apri .txt<input type="file" id="fileTxt" accept=".txt,text/plain" hidden></label>
+          <button class="btn" id="btnLoad" title="Memorizza il testo come originale">Carica testo</button>
+          <button class="btn primary" id="btnSplit" title="Genera le tessere e le mette nella banca">Dividi in parole</button>
+          <button class="btn" id="btnShuffle" title="Riordina a caso le tessere della banca">Mescola</button>
+        </div>
+      </div>
+      <p class="status" id="srcStatus"></p>
+    </div>
+  </details>
+</section>
+
+<main class="work">
+  <!-- ===== 2. TAVOLO ===== -->
+  <section class="panel board-panel" aria-label="Tavolo di composizione">
+    <div class="panel-head">
+      <h2>Tavolo</h2>
+      <div class="tools">
+        <button class="btn" id="btnAddLine" title="Nuova riga dopo quella attiva">+ Riga</button>
+        <label class="toggle" title="Evidenzia le coppie di parole adiacenti che compaiono già così nel testo originale"><input type="checkbox" id="echoes"> Echi</label>
+        <button class="btn" id="btnClear" title="Rimanda tutte le tessere nella banca">Svuota</button>
+        <button class="btn" id="btnTxt" title="Scarica il testo ricostruito come .txt">Scarica</button>
+        <button class="btn primary" id="btnCopy" title="Copia negli appunti il testo ricostruito">Copia testo</button>
+      </div>
+    </div>
+    <div class="counts"><span id="counts"></span><div class="meter"><i id="meter"></i></div></div>
+    <div class="sugg" id="sugg" aria-live="polite"></div>
+    <div class="scroll" id="boardScroll">
+      <div class="board" id="board"></div>
+      <button class="newline-zone" id="newLine" type="button">Nuova riga in fondo (puoi anche trascinarci una tessera)</button>
+    </div>
+  </section>
+
+  <!-- ===== 3. BANCA ===== -->
+  <section class="panel bank-panel" id="bankPanel" aria-label="Banca delle parole">
+    <div class="panel-head">
+      <h2>Banca</h2>
+      <div class="tools">
+        <input type="search" id="filter" placeholder="Cerca e premi Invio" autocomplete="off" autocapitalize="off" spellcheck="false"
+               title="Scrivi una o più parole: Invio le inserisce al cursore nell'ordine scritto. Scorciatoia: /">
+        <select id="sort" title="Ordinamento della banca">
+          <option value="bank">Ordine attuale</option>
+          <option value="az">Alfabetico</option>
+          <option value="freq">Frequenza</option>
+        </select>
+        <label class="toggle" title="Una sola tessera per le parole ripetute con il numero di copie"><input type="checkbox" id="group"> Raggruppa</label>
+        <button class="btn" id="btnShuffle2" title="Riordina a caso le tessere della banca">Mescola</button>
+      </div>
+    </div>
+    <div class="scroll" id="bankScroll"><div class="bank" id="bank"></div></div>
+  </section>
+</main>
+
+<div id="dropMarker"></div>
+<div id="toast" role="status"></div>
+
+<!-- ===== DIALOGO SALVATAGGI ===== -->
+<dialog id="dlgSaves">
+  <div class="dlg-head"><h3>Salvataggi</h3><button class="btn" data-close>Chiudi</button></div>
+  <div class="dlg-body">
+    <p class="hint" style="margin:0 0 10px">Il lavoro in corso si salva da solo in questo browser. Qui puoi conservare versioni con un nome.</p>
+    <div class="save-row">
+      <input type="text" id="saveName" placeholder="Nome del salvataggio">
+      <button class="btn primary" id="btnSaveNew">Salva</button>
+    </div>
+    <div id="savesList"></div>
+    <div class="dlg-foot">
+      <button class="btn" id="btnExport" title="Scarica lo stato completo come file JSON">Esporta JSON</button>
+      <label class="btn" title="Riprendi un lavoro da un file JSON esportato">Importa JSON<input type="file" id="fileJson" accept=".json,application/json" hidden></label>
+    </div>
+  </div>
+</dialog>
+
+<!-- ===== DIALOGO GUIDA ===== -->
+<dialog id="dlgHelp">
+  <div class="dlg-head"><h3>Come si gioca</h3><button class="btn" data-close>Chiudi</button></div>
+  <div class="dlg-body">
+    <p>Ricomponi un testo usando tutte e sole le sue parole. Non devi aggiungere né togliere nulla: puoi solo spostare.</p>
+    <h4>Divisione in tessere</h4>
+    <ul>
+      <li><b>Punteggiatura separata</b> (predefinita): ogni segno è una tessera autonoma. Le parole con apostrofo o trattino interno restano intere (<i>quest'ermo</i>, <i>m'è</i>, <i>socio-culturale</i>). I numeri decimali restano interi. I puntini di sospensione formano una sola tessera.</li>
+      <li><b>Punteggiatura attaccata</b>: il testo si divide solo sugli spazi. Ogni segno resta incollato alla parola cui è attaccato nell'originale.</li>
+      <li>Maiuscole e minuscole sono conservate come nell'originale.</li>
+    </ul>
+    <h4>Comporre</h4>
+    <ul>
+      <li>Clic su una tessera della banca: la inserisce al cursore blu.</li>
+      <li>Trascina le tessere tra banca e tavolo o dentro il tavolo. Su tablet tieni premuta la tessera un istante poi trascina.</li>
+      <li>Clic su una tessera del tavolo: sposta il cursore prima o dopo di essa. La <kbd>×</kbd> o un doppio clic la rimandano nella banca. Anche trascinarla sulla banca la rimette in gioco.</li>
+      <li>Nel campo di ricerca scrivi una o più parole: <kbd>Invio</kbd> le inserisce in sequenza.</li>
+    </ul>
+    <h4>Tastiera (fuori dai campi di testo)</h4>
+    <ul>
+      <li><kbd>←</kbd> <kbd>→</kbd> spostano il cursore; <kbd>↑</kbd> <kbd>↓</kbd> cambiano riga; <kbd>Home</kbd> <kbd>Fine</kbd> vanno a inizio o fine riga.</li>
+      <li><kbd>Invio</kbd> spezza la riga al cursore; <kbd>Backspace</kbd> a inizio riga la unisce alla precedente.</li>
+      <li><kbd>Backspace</kbd> <kbd>Canc</kbd> rimandano nella banca la tessera prima o dopo il cursore.</li>
+      <li><kbd>Ctrl/Cmd</kbd>+<kbd>Z</kbd> annulla; con <kbd>Shift</kbd> ripete. <kbd>/</kbd> porta al campo di ricerca.</li>
+    </ul>
+    <h4>Suggerimenti ed echi</h4>
+    <ul>
+      <li>I suggerimenti guardano le una o due tessere prima del cursore e quella dopo. Propongono le parole della banca che nell'originale compaiono in quella posizione (bigrammi e trigrammi). Le tessere suggerite si colorano di verde anche nella banca.</li>
+      <li><b>Echi</b> colora di ambra le coppie adiacenti sul tavolo che esistono già nell'originale: serve a misurare quanto ti stai allontanando dalla fonte.</li>
+    </ul>
+  </div>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   1. COSTANTI E UTILITÀ
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const LIMIT = 1500;                 // tessere mostrate nella banca prima di "Mostra altre"
+const START = '\u0002';             // pseudo-token di inizio frase per i suggerimenti
+const SEP = '\u0001';               // separatore per le chiavi dei trigrammi
+const fmt = n => n.toLocaleString('it-IT');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLL = new Intl.Collator('it', { sensitivity: 'base', numeric: true });
+
+/* Tokenizzazione in modalità "separata":
+   - numeri con separatori decimali (3,5 · 1.000)
+   - parole con apostrofi o trattini interni (l'uomo, quest'ermo, socio-culturale) + eventuale apostrofo finale (po')
+   - puntini di sospensione come unica tessera
+   - ogni altro segno non spaziale come tessera singola */
+const TOKEN_RE = /\p{N}+(?:[.,:]\p{N}+)+|[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*['’]?|\.{2,}|[^\s\p{L}\p{M}\p{N}]/gu;
+
+function tokenize(text, mode){
+  if (mode === 'att') return text.split(/\s+/).filter(Boolean);
+  return text.match(TOKEN_RE) || [];
+}
+const isPunct = t => !/[\p{L}\p{N}]/u.test(t);
+/* Chiave normalizzata: minuscolo, senza punteggiatura esterna. Usata per suggerimenti ed echi */
+function normKey(t){
+  const k = t.toLowerCase().replace(/’/g, "'").replace(/[^\p{L}\p{M}\p{N}']/gu, '');
+  return k || t;
+}
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* =========================================================
+   2. STATO
+   Ogni tessera ha un id = indice in S.tokens. Banca e righe
+   contengono solo id: il multinsieme delle parole è quindi
+   invariante per costruzione.
+   ========================================================= */
+const S = {
+  original: '',   // testo caricato
+  mode: 'sep',    // 'sep' | 'att'
+  tokens: [],     // testo di ciascuna tessera
+  keys: [],       // chiave normalizzata di ciascuna tessera
+  bank: [],       // id presenti nella banca, in ordine
+  board: [[]],    // righe del tavolo: array di id
+  line: 0,        // riga attiva
+  caret: 0        // posizione del cursore nella riga attiva
+};
+const UI = { filter: '', sort: 'bank', group: false, echoes: false, limit: LIMIT };
+let model = { next: new Map(), prev: new Map(), tri: new Map() };
+let stats = { words: 0, punct: 0 };
+let BI = new Map();        // indice della banca: testo -> [id]
+let lastSuggSet = new Set();
+let echoCount = 0;
+
+/* ---------- cronologia (annulla/ripeti) ---------- */
+const H = { past: [], future: [] };
+const snap = () => ({ bank: S.bank.slice(), board: S.board.map(l => l.slice()), line: S.line, caret: S.caret });
+function restoreSnap(s){ S.bank = s.bank; S.board = s.board; S.line = s.line; S.caret = s.caret; }
+function mutate(fn){
+  H.past.push(snap());
+  if (H.past.length > 200) H.past.shift();
+  H.future.length = 0;
+  fn();
+  clamp(); render(); scheduleSave();
+}
+function undo(){ if (!H.past.length) return; H.future.push(snap()); restoreSnap(H.past.pop()); clamp(); render(); scheduleSave(); }
+function redo(){ if (!H.future.length) return; H.past.push(snap()); restoreSnap(H.future.pop()); clamp(); render(); scheduleSave(); }
+
+function clamp(){
+  if (!S.board.length) S.board = [[]];
+  S.line = Math.max(0, Math.min(S.line, S.board.length - 1));
+  S.caret = Math.max(0, Math.min(S.caret, S.board[S.line].length));
+}
+
+/* =========================================================
+   3. MODELLO DI ACCOSTAMENTI (bigrammi e trigrammi dell'originale)
+   ========================================================= */
+function buildModel(){
+  const next = new Map(), prev = new Map(), tri = new Map();
+  const bump = (map, a, b) => {
+    let m = map.get(a);
+    if (!m){ m = new Map(); map.set(a, m); }
+    m.set(b, (m.get(b) || 0) + 1);
+  };
+  const CLOSERS = /^["»”’)\]]+$/;
+  const ENDS = /[.!?…]["»”’)\]]*$/;
+  let atStart = true;
+  for (let i = 0; i < S.tokens.length; i++){
+    const k = S.keys[i], t = S.tokens[i];
+    if (i > 0){ bump(next, S.keys[i-1], k); bump(prev, k, S.keys[i-1]); }
+    if (i > 1) bump(tri, S.keys[i-2] + SEP + S.keys[i-1], k);
+    if (atStart && !CLOSERS.test(t)){ bump(next, START, k); atStart = false; }
+    if (ENDS.test(t)) atStart = true;
+  }
+  model = { next, prev, tri };
+}
+
+/* =========================================================
+   4. RIFERIMENTI DOM
+   ========================================================= */
+const el = {
+  src: $('srcText'), status: $('srcStatus'), details: $('srcDetails'),
+  btnLoad: $('btnLoad'), btnSplit: $('btnSplit'), btnShuffle: $('btnShuffle'), btnShuffle2: $('btnShuffle2'),
+  btnSample: $('btnSample'), fileTxt: $('fileTxt'),
+  board: $('board'), boardScroll: $('boardScroll'), newLine: $('newLine'),
+  sugg: $('sugg'), counts: $('counts'), meter: $('meter'),
+  bank: $('bank'), bankScroll: $('bankScroll'), bankPanel: $('bankPanel'),
+  filter: $('filter'), sort: $('sort'), group: $('group'), echoes: $('echoes'),
+  btnUndo: $('btnUndo'), btnRedo: $('btnRedo'), btnSaves: $('btnSaves'), btnHelp: $('btnHelp'), btnReset: $('btnReset'),
+  btnAddLine: $('btnAddLine'), btnClear: $('btnClear'), btnCopy: $('btnCopy'), btnTxt: $('btnTxt'),
+  dlgSaves: $('dlgSaves'), dlgHelp: $('dlgHelp'), saveName: $('saveName'), btnSaveNew: $('btnSaveNew'),
+  savesList: $('savesList'), btnExport: $('btnExport'), fileJson: $('fileJson'),
+  marker: $('dropMarker'), toast: $('toast')
+};
+
+let toastT = 0;
+function toast(msg){
+  el.toast.textContent = msg;
+  el.toast.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.toast.classList.remove('show'), 2600);
+}
+
+/* =========================================================
+   5. RENDERING
+   Tutto il rendering passa da stringhe HTML con delega degli
+   eventi sui contenitori: niente listener per singola tessera.
+   ========================================================= */
+function bankIndex(){
+  const m = new Map();
+  for (const id of S.bank){
+    const t = S.tokens[id];
+    const a = m.get(t);
+    if (a) a.push(id); else m.set(t, [id]);
+  }
+  return m;
+}
+
+function render(){
+  BI = bankIndex();
+  const sugg = computeSuggestions();
+  lastSuggSet = new Set(sugg.items.map(i => i.text));
+  renderBoard();
+  renderSugg(sugg);
+  renderBank();
+  renderCounts();
+  renderButtons();
+}
+
+function chipHTML(id, extraClass, attrs, withX){
+  const t = S.tokens[id];
+  return `<span class="chip${isPunct(t) ? ' punct' : ''}${extraClass}" data-id="${id}" ${attrs}>${esc(t)}${withX ? '<b class="x" aria-label="Rimetti nella banca">×</b>' : ''}</span>`;
+}
+
+/* coppie adiacenti già presenti nell'originale (solo parole, non segni) */
+function computeEchoes(){
+  const set = new Set();
+  echoCount = 0;
+  S.board.forEach((line, li) => {
+    for (let i = 1; i < line.length; i++){
+      const a = line[i-1], b = line[i];
+      if (isPunct(S.tokens[a]) || isPunct(S.tokens[b])) continue;
+      const m = model.next.get(S.keys[a]);
+      if (m && m.has(S.keys[b])){ set.add(li + ':' + (i-1)); set.add(li + ':' + i); echoCount++; }
+    }
+  });
+  return set;
+}
+
+function renderBoard(){
+  const echo = UI.echoes ? computeEchoes() : null;
+  if (!UI.echoes) echoCount = 0;
+  let html = '';
+  S.board.forEach((line, li) => {
+    const active = li === S.line;
+    html += `<div class="line${active ? ' active' : ''}" data-line="${li}"><span class="ln">${li + 1}</span><div class="line-body" data-line="${li}">`;
+    for (let i = 0; i <= line.length; i++){
+      if (active && i === S.caret) html += '<span class="caret" aria-hidden="true"></span>';
+      if (i === line.length) break;
+      let cls = '';
+      if (echo && echo.has(li + ':' + i)) cls += ' echo';
+      if (active && i === S.caret - 1) cls += ' sel';
+      html += chipHTML(line[i], cls, `data-src="board" data-line="${li}" data-idx="${i}" title="Clic: cursore · doppio clic: torna in banca"`, true);
+    }
+    html += `</div><button class="line-del" type="button" data-line="${li}" title="Elimina la riga: le sue tessere tornano nella banca">×</button></div>`;
+  });
+  if (!S.tokens.length){
+    html = '<p class="hint">Il tavolo è vuoto. Incolla un testo sopra e premi «Dividi in parole»: le tessere compariranno nella banca.</p>' + html;
+  }
+  el.board.innerHTML = html;
+}
+
+function renderBank(){
+  if (!S.tokens.length){
+    el.bank.innerHTML = '<p class="hint">Qui compariranno le tessere del testo.</p>';
+    return;
+  }
+  if (!S.bank.length){
+    el.bank.innerHTML = '<p class="hint">Banca vuota: tutte le tessere sono sul tavolo.</p>';
+    return;
+  }
+  let items;
+  if (UI.group){
+    items = [];
+    for (const [t, ids] of BI) items.push({ id: ids[0], text: t, n: ids.length });
+  } else {
+    items = S.bank.map(id => ({ id, text: S.tokens[id], n: 1 }));
+  }
+  const f = UI.filter.toLowerCase();
+  if (f) items = items.filter(it => it.text.toLowerCase().includes(f));
+  if (UI.sort === 'az') items.sort((a, b) => COLL.compare(a.text, b.text));
+  else if (UI.sort === 'freq') items.sort((a, b) => (BI.get(b.text).length - BI.get(a.text).length) || COLL.compare(a.text, b.text));
+
+  if (!items.length){
+    el.bank.innerHTML = `<p class="hint">Nessuna tessera contiene «${esc(UI.filter)}».</p>`;
+    return;
+  }
+  const shown = items.slice(0, UI.limit);
+  let html = '';
+  for (const it of shown){
+    const cls = lastSuggSet.has(it.text) ? ' sugg' : '';
+    const t = S.tokens[it.id];
+    html += `<span class="chip${isPunct(t) ? ' punct' : ''}${cls}" data-id="${it.id}" data-src="bank">${esc(t)}${it.n > 1 ? `<i class="n">${it.n}</i>` : ''}</span>`;
+  }
+  if (items.length > shown.length){
+    html += `<button class="btn more" type="button" data-act="more">Mostra altre ${fmt(Math.min(LIMIT, items.length - shown.length))} di ${fmt(items.length - shown.length)}</button>`;
+  }
+  el.bank.innerHTML = html;
+}
+
+function renderCounts(){
+  const T = S.tokens.length, A = S.bank.length, U = T - A;
+  if (!T){ el.counts.textContent = 'Nessun testo diviso'; el.meter.style.width = '0'; return; }
+  let h = `<b>${fmt(U)}</b> sul tavolo<span class="sep"></span><b>${fmt(A)}</b> in banca<span class="sep"></span>${fmt(T)} totali`;
+  if (UI.echoes) h += `<span class="sep"></span><span class="echo-n">${fmt(echoCount)} ${echoCount === 1 ? 'eco' : 'echi'}</span>`;
+  if (!A) h += '<span class="sep"></span><span class="done">anagrafia completa</span>';
+  el.counts.innerHTML = h;
+  el.meter.style.width = (U / T * 100) + '%';
+}
+
+function renderButtons(){
+  const has = S.tokens.length > 0;
+  el.btnUndo.disabled = !H.past.length;
+  el.btnRedo.disabled = !H.future.length;
+  el.btnShuffle.disabled = el.btnShuffle2.disabled = S.bank.length < 2;
+  el.btnReset.disabled = !has;
+  el.btnClear.disabled = !has || S.bank.length === S.tokens.length;
+  el.btnCopy.disabled = el.btnTxt.disabled = !has || S.bank.length === S.tokens.length;
+  el.btnAddLine.disabled = !has;
+}
+
+/* ---------- suggerimenti ---------- */
+function computeSuggestions(){
+  const res = { label: '', items: [] };
+  if (!S.tokens.length || !S.bank.length) return res;
+  const line = S.board[S.line] || [], c = S.caret;
+  const a = c > 0 ? line[c-1] : -1;
+  const b = c > 1 ? line[c-2] : -1;
+  const n = c < line.length ? line[c] : -1;
+  const k1 = a >= 0 ? S.keys[a] : START;
+
+  const score = new Map();
+  const add = (m, w) => { if (m) for (const [k, v] of m) score.set(k, (score.get(k) || 0) + v * w); };
+  add(model.next.get(k1), 2);                               // parole che seguono la precedente
+  if (b >= 0) add(model.tri.get(S.keys[b] + SEP + k1), 5); // trigramma: pesa di più
+  if (n >= 0) add(model.prev.get(S.keys[n]), 1);           // parole che precedono la successiva
+
+  // chiave -> testi disponibili in banca
+  const KT = new Map();
+  for (const [t, ids] of BI){
+    const k = S.keys[ids[0]];
+    const arr = KT.get(k);
+    if (arr) arr.push(t); else KT.set(k, [t]);
+  }
+  const ranked = [...score].filter(([k]) => KT.has(k)).sort((x, y) => y[1] - x[1]);
+  outer: for (const [k] of ranked){
+    for (const t of KT.get(k)){
+      res.items.push({ text: t, count: BI.get(t).length });
+      if (res.items.length >= 14) break outer;
+    }
+  }
+  res.label = a >= 0 ? `dopo «${S.tokens[a]}»` : 'a inizio frase';
+  if (n >= 0) res.label += ` e prima di «${S.tokens[n]}»`;
+  return res;
+}
+
+function renderSugg(res){
+  if (!S.tokens.length){ el.sugg.innerHTML = ''; return; }
+  if (!S.bank.length){ el.sugg.innerHTML = '<span class="sugg-label">Tutte le tessere sono in gioco.</span>'; return; }
+  let h = `<span class="sugg-label">${esc(res.label)}:</span>`;
+  if (res.items.length){
+    h += res.items.map(it =>
+      `<span class="chip sugg${isPunct(it.text) ? ' punct' : ''}" data-text="${esc(it.text)}" title="Inserisci al cursore">${esc(it.text)}${it.count > 1 ? `<i class="n">${it.count}</i>` : ''}</span>`
+    ).join('');
+  } else {
+    h += '<span class="sugg-none">nessun accostamento attestato nell\'originale</span>';
+  }
+  el.sugg.innerHTML = h;
+}
+
+/* porta in vista il cursore scorrendo solo il pannello del tavolo */
+function revealCaret(){
+  const c = el.board.querySelector('.caret');
+  if (!c) return;
+  const r = c.getBoundingClientRect(), s = el.boardScroll.getBoundingClientRect();
+  if (r.top < s.top + 8) el.boardScroll.scrollTop -= (s.top + 8 - r.top);
+  else if (r.bottom > s.bottom - 8) el.boardScroll.scrollTop += (r.bottom - s.bottom + 8);
+}
+
+/* =========================================================
+   6. OPERAZIONI SULLE TESSERE
+   ========================================================= */
+function takeFromBank(id){
+  const i = S.bank.indexOf(id);
+  if (i < 0) return false;
+  S.bank.splice(i, 1);
+  return true;
+}
+function insertFromBank(id){
+  if (!Number.isInteger(id)) return;
+  mutate(() => {
+    if (takeFromBank(id)){ S.board[S.line].splice(S.caret, 0, id); S.caret++; }
+  });
+  revealCaret();
+}
+function removeFromBoard(li, idx){
+  const line = S.board[li];
+  if (!line || idx < 0 || idx >= line.length) return;
+  const id = line.splice(idx, 1)[0];
+  S.bank.unshift(id);                          // torna in cima alla banca: resta visibile
+  if (li === S.line && idx < S.caret) S.caret--;
+}
+function moveWithin(fl, fi, tl, ti){
+  const id = S.board[fl].splice(fi, 1)[0];
+  if (fl === tl && fi < ti) ti--;
+  S.board[tl].splice(ti, 0, id);
+  S.line = tl; S.caret = ti + 1;
+}
+function deleteLine(li){
+  mutate(() => {
+    S.bank = S.board[li].concat(S.bank);
+    if (S.board.length > 1) S.board.splice(li, 1); else S.board[0] = [];
+    if (S.line > li) S.line--;
+    else if (S.line === li){ S.line = Math.min(li, S.board.length - 1); S.caret = S.board[S.line].length; }
+  });
+}
+function addLineAfterActive(){
+  mutate(() => { S.board.splice(S.line + 1, 0, []); S.line++; S.caret = 0; });
+  revealCaret();
+}
+
+/* trova nella banca la tessera che meglio corrisponde a una stringa */
+function findInBank(q){
+  const ql = q.toLowerCase(), nq = normKey(q);
+  let best = -1, rank = 9;
+  for (const id of S.bank){
+    const t = S.tokens[id], l = t.toLowerCase();
+    const r = t === q ? 0 : l === ql ? 1 : S.keys[id] === nq ? 2 : l.startsWith(ql) ? 3 : l.includes(ql) ? 4 : 9;
+    if (r < rank){ rank = r; best = id; if (r === 0) break; }
+  }
+  return best;
+}
+/* inserisce in sequenza le parole scritte nel campo di ricerca */
+function insertTyped(raw){
+  const parts = tokenize(raw, S.mode);
+  if (!parts.length) return;
+  const missing = [];
+  const before = S.bank.length;
+  mutate(() => {
+    for (const p of parts){
+      const id = findInBank(p);
+      if (id < 0){ missing.push(p); continue; }
+      takeFromBank(id);
+      S.board[S.line].splice(S.caret, 0, id);
+      S.caret++;
+    }
+  });
+  if (S.bank.length === before){ H.past.pop(); renderButtons(); }
+  if (missing.length) toast('Non disponibili in banca: ' + missing.map(m => `«${m}»`).join(' '));
+  revealCaret();
+}
+
+/* =========================================================
+   7. TESTO DI PARTENZA
+   ========================================================= */
+function selectedMode(){ return document.querySelector('input[name=mode]:checked').value; }
+function setModeRadio(m){ document.querySelector(`input[name=mode][value="${m}"]`).checked = true; }
+
+function computeStats(){
+  const t = tokenize(S.original, 'sep');
+  const w = t.filter(x => !isPunct(x)).length;
+  stats = { words: w, punct: t.length - w };
+}
+function updateStatus(){
+  const v = el.src.value;
+  if (!S.original){
+    el.status.textContent = v.trim() ? 'Testo non ancora caricato.' : 'Incolla un testo oppure apri un file .txt.';
+    return;
+  }
+  const dirty = v !== S.original;
+  el.status.innerHTML =
+    `Testo caricato: ${fmt(S.original.length)} caratteri, ${fmt(stats.words)} parole, ${fmt(stats.punct)} segni di interpunzione` +
+    (dirty ? '. <span class="warn">Il riquadro contiene modifiche non caricate.</span>' : '');
+}
+function loadText(silent){
+  S.original = el.src.value;
+  computeStats();
+  updateStatus();
+  if (!silent) toast(S.original.trim() ? 'Testo caricato' : 'Il riquadro è vuoto');
+}
+function splitText(){
+  if (el.src.value !== S.original) loadText(true);
+  if (!S.original.trim()){ toast('Nessun testo da dividere'); return; }
+  const inPlay = S.tokens.length && S.bank.length < S.tokens.length;
+  if (inPlay && !confirm('Il tavolo verrà svuotato e le tessere rigenerate dal testo. Procedere?')) return;
+
+  S.mode = selectedMode();
+  S.tokens = tokenize(S.original, S.mode);
+  S.keys = S.tokens.map(normKey);
+  S.bank = S.tokens.map((_, i) => i);
+  S.board = [[]]; S.line = 0; S.caret = 0;
+  buildModel();
+  H.past = []; H.future = [];
+  UI.filter = ''; el.filter.value = ''; UI.sort = 'bank'; UI.limit = LIMIT;
+  if (S.tokens.length > 4000 && !UI.group){
+    UI.group = true;
+    toast(`${fmt(S.tokens.length)} tessere: ripetizioni raggruppate per scorrevolezza`);
+  } else {
+    toast(`${fmt(S.tokens.length)} tessere nella banca`);
+  }
+  syncControls();
+  render();
+  scheduleSave();
+  if (matchMedia('(max-width: 900px)').matches) el.details.open = false;
+}
+function shuffleBank(){
+  if (S.bank.length < 2) return;
+  UI.sort = 'bank'; syncControls();
+  mutate(() => shuffle(S.bank));
+  el.bankScroll.scrollTop = 0;
+}
+function resetAll(){
+  if (!S.tokens.length) return;
+  if (!confirm('Ripartire dal testo originale? Il tavolo verrà svuotato. Potrai comunque annullare.')) return;
+  mutate(() => { S.bank = S.tokens.map((_, i) => i); S.board = [[]]; S.line = 0; S.caret = 0; });
+  el.src.value = S.original; updateStatus();
+  UI.filter = ''; el.filter.value = ''; UI.sort = 'bank'; UI.limit = LIMIT;
+  syncControls(); render();
+}
+function clearBoard(){
+  mutate(() => { S.bank = S.board.flat().concat(S.bank); S.board = [[]]; S.line = 0; S.caret = 0; });
+}
+
+function syncControls(){
+  el.sort.value = UI.sort;
+  el.group.checked = UI.group;
+  el.echoes.checked = UI.echoes;
+}
+
+/* =========================================================
+   8. ESPORTAZIONE DEL TESTO RICOSTRUITO
+   Spaziatura tipografica: niente spazio prima di , . ; : ! ? ) » …
+   niente spazio dopo ( « “. Le virgolette diritte alternano apertura e chiusura.
+   ========================================================= */
+const NO_SPACE_BEFORE = /^(?:[,.;:!?%)\]}»”’…]+|\.{2,})$/;
+const NO_SPACE_AFTER = /^[(\[{«“‘¿¡]$/;
+function lineToText(line){
+  let out = '', prevNoAfter = true, dq = 0;
+  for (const id of line){
+    const t = S.tokens[id];
+    let noBefore = NO_SPACE_BEFORE.test(t), noAfter = NO_SPACE_AFTER.test(t);
+    if (t === '"'){ dq++; if (dq % 2) noAfter = true; else noBefore = true; }
+    if (out && !noBefore && !prevNoAfter) out += ' ';
+    out += t;
+    prevNoAfter = noAfter;
+  }
+  return out;
+}
+function boardText(){
+  const lines = S.board.map(lineToText);
+  while (lines.length && !lines[lines.length - 1]) lines.pop();
+  return lines.join('\n');
+}
+async function copyText(txt){
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch (e){
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_){ }
+    ta.remove();
+    return ok;
+  }
+}
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+function stamp(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+/* =========================================================
+   9. SALVATAGGIO (localStorage + JSON)
+   ========================================================= */
+const LS = (() => {
+  try { const k = '__anagrafia_test'; localStorage.setItem(k, '1'); localStorage.removeItem(k); return localStorage; }
+  catch (e){ return null; }   // es. anteprime in iframe protetti: restano Esporta/Importa
+})();
+const KEY_AUTO = 'anagrafia:auto', KEY_SAVES = 'anagrafia:saves';
+
+function serialize(){
+  return {
+    app: 'anagrafia', v: 1, savedAt: new Date().toISOString(),
+    original: S.original, mode: S.mode, tokens: S.tokens,
+    bank: S.bank, board: S.board, line: S.line, caret: S.caret,
+    ui: { sort: UI.sort, group: UI.group, echoes: UI.echoes }
+  };
+}
+/* ripristina lo stato verificando che ogni tessera compaia una e una sola volta */
+function deserialize(o){
+  if (!o || !Array.isArray(o.tokens)) throw new Error('formato non riconosciuto');
+  const n = o.tokens.length, seen = new Uint8Array(n);
+  const clean = arr => (Array.isArray(arr) ? arr : []).filter(id => {
+    if (!Number.isInteger(id) || id < 0 || id >= n || seen[id]) return false;
+    seen[id] = 1; return true;
+  });
+  const board = (Array.isArray(o.board) && o.board.length ? o.board : [[]]).map(clean);
+  const bank = clean(o.bank);
+  for (let i = 0; i < n; i++) if (!seen[i]) bank.push(i);
+
+  S.original = String(o.original || '');
+  S.mode = o.mode === 'att' ? 'att' : 'sep';
+  S.tokens = o.tokens.map(String);
+  S.keys = S.tokens.map(normKey);
+  S.bank = bank; S.board = board;
+  S.line = o.line | 0; S.caret = o.caret | 0;
+  if (o.ui){
+    UI.sort = ['bank', 'az', 'freq'].includes(o.ui.sort) ? o.ui.sort : 'bank';
+    UI.group = !!o.ui.group; UI.echoes = !!o.ui.echoes;
+  }
+  UI.filter = ''; el.filter.value = ''; UI.limit = LIMIT;
+  H.past = []; H.future = [];
+  clamp(); buildModel(); computeStats();
+  el.src.value = S.original; setModeRadio(S.mode); syncControls(); updateStatus();
+}
+
+let saveT = 0;
+function scheduleSave(){
+  if (!LS) return;
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    if (!S.tokens.length) return;
+    try { LS.setItem(KEY_AUTO, JSON.stringify(serialize())); }
+    catch (e){ toast('Salvataggio automatico non riuscito: spazio locale esaurito. Usa Esporta JSON.'); }
+  }, 600);
+}
+function readSaves(){
+  if (!LS) return [];
+  try { return JSON.parse(LS.getItem(KEY_SAVES) || '[]'); } catch (e){ return []; }
+}
+function renderSaves(){
+  if (!LS){
+    el.savesList.innerHTML = '<p class="hint">L\'archivio del browser non è disponibile in questo contesto. Usa Esporta e Importa JSON.</p>';
+    el.btnSaveNew.disabled = true;
+    return;
+  }
+  const saves = readSaves();
+  if (!saves.length){ el.savesList.innerHTML = '<p class="hint">Nessun salvataggio con nome.</p>'; return; }
+  el.savesList.innerHTML = '<ul class="saves">' + saves.map((s, i) => {
+    const T = s.data.tokens.length, U = T - s.data.bank.length;
+    return `<li><div><b>${esc(s.name)}</b><small>${new Date(s.savedAt).toLocaleString('it-IT')}, ${fmt(U)} di ${fmt(T)} tessere sul tavolo</small></div>
+      <span><button class="btn" data-act="load" data-i="${i}">Apri</button><button class="btn quiet" data-act="del" data-i="${i}">Elimina</button></span></li>`;
+  }).join('') + '</ul>';
+}
+
+/* =========================================================
+   10. TRASCINAMENTO
+   Implementazione a mano (pointer events per mouse e penna,
+   touch events con pressione prolungata su tablet) per un
+   comportamento identico su desktop e dispositivi touch.
+   ========================================================= */
+const D = { press: null, active: false, ghost: null, srcEl: null, src: null, target: null, x: 0, y: 0, offX: 0, offY: 0, raf: 0, suppress: false };
+
+function pressStart(chip, x, y, touch){
+  cancelPress();
+  D.press = { chip, x0: x, y0: y, touch, timer: 0 };
+  D.x = x; D.y = y;
+  if (touch) D.press.timer = setTimeout(beginDrag, 260);
+}
+function cancelPress(){
+  if (D.press) clearTimeout(D.press.timer);
+  D.press = null;
+}
+function pressMove(x, y){
+  D.x = x; D.y = y;
+  if (!D.active && D.press){
+    const dist = Math.hypot(x - D.press.x0, y - D.press.y0);
+    if (D.press.touch){ if (dist > 10) cancelPress(); }   // su touch il movimento prima del timer è scorrimento
+    else if (dist > 5) beginDrag();
+  }
+}
+function beginDrag(){
+  const p = D.press;
+  if (!p || !p.chip.isConnected) return cancelPress();
+  clearTimeout(p.timer);
+  const chip = p.chip, r = chip.getBoundingClientRect();
+  D.offX = p.x0 - r.left; D.offY = p.y0 - r.top;
+  D.src = { from: chip.dataset.src, id: +chip.dataset.id, line: +chip.dataset.line, idx: +chip.dataset.idx };
+  D.ghost = chip.cloneNode(true);
+  D.ghost.classList.add('ghost');
+  D.ghost.classList.remove('sel', 'echo');
+  document.body.appendChild(D.ghost);
+  D.srcEl = chip; chip.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+  D.active = true;
+  if (p.touch && navigator.vibrate) navigator.vibrate(10);
+  D.raf = requestAnimationFrame(tick);
+}
+function tick(){
+  if (!D.active) return;
+  D.ghost.style.transform = `translate(${D.x - D.offX}px, ${D.y - D.offY}px) rotate(-2deg)`;
+  autoScroll(D.x, D.y);
+  computeTarget(D.x, D.y);
+  D.raf = requestAnimationFrame(tick);
+}
+function autoScroll(x, y){
+  const EDGE = 44, SPEED = 12;
+  const under = document.elementFromPoint(x, y);
+  const sc = under && under.closest('.scroll');
+  if (sc){
+    const r = sc.getBoundingClientRect();
+    if (y < r.top + EDGE) sc.scrollTop -= SPEED;
+    else if (y > r.bottom - EDGE) sc.scrollTop += SPEED;
+  }
+  if (y < EDGE) window.scrollBy(0, -SPEED);
+  else if (y > innerHeight - EDGE) window.scrollBy(0, SPEED);
+}
+/* punto di inserimento in una riga: conta le tessere che precedono il puntatore in ordine di lettura */
+function insertPoint(body, x, y){
+  const chips = body.querySelectorAll('.chip');
+  let idx = 0, ref = null;
+  for (const c of chips){
+    const r = c.getBoundingClientRect();
+    const before = r.bottom < y || (r.top <= y && r.left + r.width / 2 < x);
+    if (before){ idx = +c.dataset.idx + 1; ref = r; }
+  }
+  let mx, my, mh;
+  if (idx < chips.length){ const r = chips[idx].getBoundingClientRect(); mx = r.left - 5; my = r.top; mh = r.height; }
+  else if (ref){ mx = ref.right + 2; my = ref.top; mh = ref.height; }
+  else { const r = body.getBoundingClientRect(); mx = r.left + 6; my = r.top + 6; mh = Math.max(24, r.height - 12); }
+  return { idx, mx, my, mh };
+}
+function computeTarget(x, y){
+  el.bankPanel.classList.remove('drop-hover');
+  el.newLine.classList.remove('drop-hover');
+  const under = document.elementFromPoint(x, y);
+  let t = null;
+  if (under){
+    const lineEl = under.closest('#board .line');
+    if (lineEl){
+      const li = +lineEl.dataset.line;
+      t = { kind: 'line', line: li, ...insertPoint(lineEl.querySelector('.line-body'), x, y) };
+    } else if (under.closest('#newLine')){
+      t = { kind: 'newline' };
+      el.newLine.classList.add('drop-hover');
+    } else if (under.closest('#boardScroll')){
+      const body = el.board.querySelector(`.line-body[data-line="${S.line}"]`);
+      if (body) t = { kind: 'line', line: S.line, ...insertPoint(body, Infinity, Infinity) };
+    } else if (under.closest('#bankPanel') && D.src.from === 'board'){
+      t = { kind: 'bank' };
+      el.bankPanel.classList.add('drop-hover');
+    }
+  }
+  D.target = t;
+  const m = el.marker;
+  if (t && t.kind === 'line'){
+    m.style.display = 'block';
+    m.style.left = t.mx + 'px'; m.style.top = t.my + 'px'; m.style.height = t.mh + 'px';
+  } else m.style.display = 'none';
+}
+function endDrag(doDrop){
+  cancelAnimationFrame(D.raf);
+  const t = D.target, s = D.src;
+  D.ghost && D.ghost.remove();
+  D.srcEl && D.srcEl.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  el.marker.style.display = 'none';
+  el.bankPanel.classList.remove('drop-hover');
+  el.newLine.classList.remove('drop-hover');
+  Object.assign(D, { active: false, ghost: null, srcEl: null, src: null, target: null });
+  cancelPress();
+  D.suppress = true;
+  setTimeout(() => { D.suppress = false; }, 60);
+  if (doDrop && t && s) drop(t, s);
+}
+function drop(t, s){
+  if (t.kind === 'line'){
+    if (s.from === 'bank'){
+      mutate(() => { if (takeFromBank(s.id)){ S.board[t.line].splice(t.idx, 0, s.id); S.line = t.line; S.caret = t.idx + 1; } });
+    } else {
+      if (t.line === s.line && (t.idx === s.idx || t.idx === s.idx + 1)) return; // nessuno spostamento reale
+      mutate(() => moveWithin(s.line, s.idx, t.line, t.idx));
+    }
+  } else if (t.kind === 'newline'){
+    mutate(() => {
+      let id;
+      if (s.from === 'bank'){ if (!takeFromBank(s.id)) return; id = s.id; }
+      else id = S.board[s.line].splice(s.idx, 1)[0];
+      S.board.push([id]); S.line = S.board.length - 1; S.caret = 1;
+    });
+    revealCaret();
+  } else if (t.kind === 'bank' && s.from === 'board'){
+    mutate(() => removeFromBoard(s.line, s.idx));
+  }
+}
+
+/* mouse e penna */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch' || e.button !== 0) return;
+  const chip = e.target.closest('#board .chip[data-id], #bank .chip[data-id]');
+  if (!chip || e.target.closest('.x')) return;
+  e.preventDefault();
+  pressStart(chip, e.clientX, e.clientY, false);
+});
+document.addEventListener('pointermove', e => { if (e.pointerType !== 'touch' && (D.press || D.active)) pressMove(e.clientX, e.clientY); });
+document.addEventListener('pointerup', e => {
+  if (e.pointerType === 'touch') return;
+  if (D.active) endDrag(true); else cancelPress();
+});
+/* touch: pressione prolungata poi trascinamento; lo scorrimento resta libero */
+document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1){ if (D.active) endDrag(false); else cancelPress(); return; }
+  const chip = e.target.closest('#board .chip[data-id], #bank .chip[data-id]');
+  if (!chip || e.target.closest('.x')) return;
+  const t = e.touches[0];
+  pressStart(chip, t.clientX, t.clientY, true);
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  if (D.active){ e.preventDefault(); pressMove(t.clientX, t.clientY); }
+  else if (D.press) pressMove(t.clientX, t.clientY);
+}, { passive: false });
+document.addEventListener('touchend', e => {
+  if (D.active){ e.preventDefault(); const t = e.changedTouches[0]; D.x = t.clientX; D.y = t.clientY; computeTarget(D.x, D.y); endDrag(true); }
+  else cancelPress();
+}, { passive: false });
+document.addEventListener('touchcancel', () => { if (D.active) endDrag(false); else cancelPress(); });
+document.addEventListener('contextmenu', e => { if (D.active || (D.press && D.press.touch)) e.preventDefault(); });
+/* blocca il clic sintetico che segue un trascinamento */
+document.addEventListener('click', e => { if (D.suppress){ e.stopPropagation(); e.preventDefault(); } }, true);
+
+/* =========================================================
+   11. EVENTI
+   ========================================================= */
+/* banca */
+el.bank.addEventListener('click', e => {
+  if (e.target.closest('[data-act="more"]')){ UI.limit += LIMIT; renderBank(); return; }
+  const chip = e.target.closest('.chip[data-id]');
+  if (chip) insertFromBank(+chip.dataset.id);
+});
+/* suggerimenti */
+el.sugg.addEventListener('click', e => {
+  const chip = e.target.closest('.chip[data-text]');
+  if (!chip) return;
+  const ids = BI.get(chip.dataset.text);
+  if (ids) insertFromBank(ids[0]);
+});
+/* tavolo: cursore, rimozione, righe */
+let lastChipClick = { id: -1, t: 0 };
+el.board.addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (chip && e.target.closest('.x')){ mutate(() => removeFromBoard(+chip.dataset.line, +chip.dataset.idx)); return; }
+  const del = e.target.closest('.line-del');
+  if (del){ deleteLine(+del.dataset.line); return; }
+  if (chip){
+    const id = +chip.dataset.id, now = Date.now();
+    if (lastChipClick.id === id && now - lastChipClick.t < 380){   // doppio clic
+      lastChipClick = { id: -1, t: 0 };
+      mutate(() => removeFromBoard(+chip.dataset.line, +chip.dataset.idx));
+      return;
+    }
+    lastChipClick = { id, t: now };
+    const r = chip.getBoundingClientRect(), i = +chip.dataset.idx;
+    S.line = +chip.dataset.line;
+    S.caret = e.clientX < r.left + r.width / 2 ? i : i + 1;
+    render();
+    return;
+  }
+  const lineEl = e.target.closest('.line');
+  if (lineEl){ S.line = +lineEl.dataset.line; S.caret = S.board[S.line].length; render(); }
+});
+el.newLine.addEventListener('click', () => {
+  if (!S.tokens.length) return;
+  const last = S.board[S.board.length - 1];
+  if (!last.length && S.board.length > 0 && S.line === S.board.length - 1) return;
+  mutate(() => { S.board.push([]); S.line = S.board.length - 1; S.caret = 0; });
+  revealCaret();
+});
+
+/* testo di partenza */
+el.btnLoad.addEventListener('click', () => loadText(false));
+el.btnSplit.addEventListener('click', splitText);
+el.btnShuffle.addEventListener('click', shuffleBank);
+el.btnShuffle2.addEventListener('click', shuffleBank);
+el.src.addEventListener('input', updateStatus);
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => {
+  if (S.tokens.length && selectedMode() !== S.mode) toast('Premi «Dividi in parole» per applicare la nuova divisione');
+}));
+el.btnSample.addEventListener('click', () => {
+  if (el.src.value.trim() && !confirm('Sostituire il contenuto del riquadro con il testo di esempio?')) return;
+  el.src.value = SAMPLE;
+  loadText(false);
+});
+el.fileTxt.addEventListener('change', () => {
+  const f = el.fileTxt.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { el.src.value = String(rd.result); loadText(false); el.fileTxt.value = ''; };
+  rd.readAsText(f, 'utf-8');
+});
+
+/* barra del tavolo */
+el.btnAddLine.addEventListener('click', addLineAfterActive);
+el.btnClear.addEventListener('click', clearBoard);
+el.echoes.addEventListener('change', () => { UI.echoes = el.echoes.checked; render(); scheduleSave(); });
+el.btnCopy.addEventListener('click', async () => {
+  const ok = await copyText(boardText());
+  toast(ok ? 'Testo copiato' : 'Copia non riuscita: usa Scarica');
+});
+el.btnTxt.addEventListener('click', () => download(`anagrafia-${stamp()}.txt`, boardText(), 'text/plain;charset=utf-8'));
+
+/* barra della banca */
+el.filter.addEventListener('input', () => {
+  const v = el.filter.value;
+  const parts = /\s$/.test(v) ? [] : tokenize(v, S.mode);
+  UI.filter = parts.length ? parts[parts.length - 1] : '';
+  UI.limit = LIMIT;
+  renderBank();
+});
+el.filter.addEventListener('keydown', e => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    const v = el.filter.value.trim();
+    if (!v || !S.bank.length) return;
+    el.filter.value = ''; UI.filter = '';
+    insertTyped(v);
+  } else if (e.key === 'Escape'){
+    el.filter.value = ''; UI.filter = ''; renderBank(); el.filter.blur();
+  }
+});
+el.sort.addEventListener('change', () => { UI.sort = el.sort.value; UI.limit = LIMIT; renderBank(); scheduleSave(); });
+el.group.addEventListener('change', () => { UI.group = el.group.checked; UI.limit = LIMIT; renderBank(); scheduleSave(); });
+
+/* intestazione */
+el.btnUndo.addEventListener('click', undo);
+el.btnRedo.addEventListener('click', redo);
+el.btnReset.addEventListener('click', resetAll);
+el.btnHelp.addEventListener('click', () => el.dlgHelp.showModal());
+el.btnSaves.addEventListener('click', () => { renderSaves(); el.dlgSaves.showModal(); });
+
+/* dialoghi */
+document.querySelectorAll('dialog').forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+});
+el.btnSaveNew.addEventListener('click', () => {
+  if (!LS) return;
+  if (!S.tokens.length){ toast('Niente da salvare: dividi prima un testo'); return; }
+  const name = el.saveName.value.trim() || `Senza titolo ${new Date().toLocaleString('it-IT')}`;
+  const saves = readSaves().filter(s => s.name !== name);
+  saves.unshift({ name, savedAt: new Date().toISOString(), data: serialize() });
+  try { LS.setItem(KEY_SAVES, JSON.stringify(saves)); el.saveName.value = ''; renderSaves(); toast('Salvato'); }
+  catch (e){ toast('Spazio locale esaurito: elimina qualche salvataggio o usa Esporta JSON'); }
+});
+el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); el.btnSaveNew.click(); } });
+el.savesList.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const saves = readSaves(), i = +b.dataset.i, s = saves[i];
+  if (!s) return;
+  if (b.dataset.act === 'load'){
+    if (S.tokens.length && !confirm(`Aprire «${s.name}»? Il lavoro corrente verrà sostituito.`)) return;
+    try { deserialize(s.data); render(); scheduleSave(); el.dlgSaves.close(); toast(`Aperto «${s.name}»`); }
+    catch (err){ toast('Salvataggio illeggibile: ' + err.message); }
+  } else if (b.dataset.act === 'del'){
+    if (!confirm(`Eliminare «${s.name}»?`)) return;
+    saves.splice(i, 1);
+    LS.setItem(KEY_SAVES, JSON.stringify(saves));
+    renderSaves();
+  }
+});
+el.btnExport.addEventListener('click', () => {
+  if (!S.tokens.length){ toast('Niente da esportare: dividi prima un testo'); return; }
+  download(`anagrafia-${stamp()}.json`, JSON.stringify(serialize()), 'application/json');
+});
+el.fileJson.addEventListener('change', () => {
+  const f = el.fileJson.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try { deserialize(JSON.parse(String(rd.result))); render(); scheduleSave(); el.dlgSaves.close(); toast('Lavoro importato'); }
+    catch (err){ toast('File non valido: ' + err.message); }
+    el.fileJson.value = '';
+  };
+  rd.readAsText(f, 'utf-8');
+});
+
+/* tastiera */
+document.addEventListener('keydown', e => {
+  const tg = e.target;
+  const typing = tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable ||
+                 (tg.tagName === 'INPUT' && !['checkbox', 'radio', 'button'].includes(tg.type));
+  const mod = e.ctrlKey || e.metaKey;
+  if (document.querySelector('dialog[open]')) return;
+  if (mod && !typing && e.key.toLowerCase() === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && !typing && e.key.toLowerCase() === 'y'){ e.preventDefault(); redo(); return; }
+  if (typing || mod || e.altKey || !S.tokens.length) return;
+
+  const line = S.board[S.line];
+  switch (e.key){
+    case 'ArrowLeft':  S.caret = Math.max(0, S.caret - 1); break;
+    case 'ArrowRight': S.caret = Math.min(line.length, S.caret + 1); break;
+    case 'ArrowUp':    if (S.line > 0){ S.line--; S.caret = Math.min(S.caret, S.board[S.line].length); } break;
+    case 'ArrowDown':  if (S.line < S.board.length - 1){ S.line++; S.caret = Math.min(S.caret, S.board[S.line].length); } break;
+    case 'Home': S.caret = 0; break;
+    case 'End':  S.caret = line.length; break;
+    case 'Enter':
+      e.preventDefault();
+      mutate(() => { const tail = S.board[S.line].splice(S.caret); S.board.splice(S.line + 1, 0, tail); S.line++; S.caret = 0; });
+      revealCaret();
+      return;
+    case 'Backspace':
+      e.preventDefault();
+      if (S.caret > 0) mutate(() => removeFromBoard(S.line, S.caret - 1));
+      else if (S.line > 0) mutate(() => {
+        const prev = S.board[S.line - 1], c = prev.length;
+        prev.push(...S.board[S.line]); S.board.splice(S.line, 1); S.line--; S.caret = c;
+      });
+      revealCaret();
+      return;
+    case 'Delete':
+      e.preventDefault();
+      if (S.caret < line.length) mutate(() => removeFromBoard(S.line, S.caret));
+      return;
+    case '/':
+      e.preventDefault(); el.filter.focus();
+      return;
+    default: return;
+  }
+  e.preventDefault();
+  render();
+  revealCaret();
+});
+
+/* =========================================================
+   12. AVVIO
+   ========================================================= */
+const SAMPLE = `Sempre caro mi fu quest'ermo colle,
+E questa siepe, che da tanta parte
+Dell'ultimo orizzonte il guardo esclude.
+Ma sedendo e mirando, interminati
+Spazi di là da quella, e sovrumani
+Silenzi, e profondissima quiete
+Io nel pensier mi fingo; ove per poco
+Il cor non si spaura. E come il vento
+Odo stormir tra queste piante, io quello
+Infinito silenzio a questa voce
+Vo comparando: e mi sovvien l'eterno,
+E le morte stagioni, e la presente
+E viva, e il suon di lei. Così tra questa
+Immensità s'annega il pensier mio:
+E il naufragar m'è dolce in questo mare.`;
+
+(function init(){
+  let restored = false;
+  if (LS){
+    try {
+      const raw = LS.getItem(KEY_AUTO);
+      if (raw){ deserialize(JSON.parse(raw)); restored = S.tokens.length > 0; }
+    } catch (e){ /* autosalvataggio corrotto: si riparte puliti */ }
+  }
+  updateStatus();
+  render();
+  if (restored){ el.details.open = false; toast('Ripreso il lavoro lasciato in sospeso'); }
+})();
+
+})();
+</script>
+</body>
+</html>
